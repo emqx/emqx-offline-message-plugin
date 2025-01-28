@@ -2,9 +2,4 @@
 %% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
--module(emqx_omp_cli).
-
--export([cmd/1]).
-
-cmd(_) ->
-    emqx_ctl:usage([{"offline_message status", "Print the status of offline message plugin"}]).
+-define(METRICS_WORKER, emqx_omp_metrics_worker).
