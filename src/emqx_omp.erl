@@ -2,7 +2,7 @@
 %% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
--module(emqx_offline_message_plugin).
+-module(emqx_omp).
 
 %% for #message{} record
 %% no need for this include if we call emqx_message:to_map/1 to convert it to a map

@@ -1,4 +1,5 @@
 export BUILD_WITHOUT_QUIC = 1
+export PROFILE = emqx
 
 ## shallow clone for speed
 export REBAR_GIT_CLONE_OPTIONS += --depth=1

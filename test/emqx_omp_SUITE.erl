@@ -2,7 +2,7 @@
 %% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
--module(emqx_offline_message_plugin_SUITE).
+-module(emqx_omp_SUITE).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -13,10 +13,10 @@
 -include_lib("common_test/include/ct.hrl").
 
 all() ->
-    emqx_offline_message_plugin_test_helpers:all(?MODULE).
+    emqx_omp_test_helpers:all(?MODULE).
 
 init_per_suite(Config) ->
-    ok = emqx_offline_message_plugin_test_helpers:init_cth(),
+    ok = emqx_omp_test_helpers:init_cth(),
     SuiteApps = emqx_cth_suite:start(
         [{emqx, #{override_env => [{boot_modules, [broker]}]}}],
         #{work_dir => emqx_cth_suite:work_dir(Config)}

@@ -2,9 +2,9 @@
     {description, "EMQX Offline Message Plugin"},
     {vsn, "0.1.0"},
     {modules, []},
-    {registered, [emqx_offline_message_plugin_sup]},
+    {registered, [emqx_omp_sup]},
     {applications, [kernel, stdlib]},
-    {mod, {emqx_offline_message_plugin_app, []}},
+    {mod, {emqx_omp_app, []}},
     {env, []},
     {licenses, ["Private"]},
     {maintainers, ["EMQX <emqx@emqx.io>"]}

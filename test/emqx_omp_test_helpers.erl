@@ -2,7 +2,7 @@
 %% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
--module(emqx_offline_message_plugin_test_helpers).
+-module(emqx_omp_test_helpers).
 
 -export([
     init_cth/0,

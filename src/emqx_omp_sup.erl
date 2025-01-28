@@ -2,7 +2,7 @@
 %% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
--module(emqx_offline_message_plugin_sup).
+-module(emqx_omp_sup).
 
 -behaviour(supervisor).
 
