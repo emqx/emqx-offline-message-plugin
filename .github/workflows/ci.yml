@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - '*'
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Erlang
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: "26"
+        rebar3-version: "3"
+
+    - name: Start Dependencies
+      run: make up
+
+    - name: Run Tests
+      run: make ct
+
+    - name: Cleanup
+      if: always()
+      run: make down
+
+  release:
+    name: Publish release
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Erlang
+      uses: erlef/setup-beam@v1
+      with:
+        otp-version: "26"
+        rebar3-version: "3"
+
+    - name: Build Release
+      run: make rel
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: _build/default/emqx_plugrel/emqx_offline_message_plugin-*.tar.gz
+        generate_release_notes: true
