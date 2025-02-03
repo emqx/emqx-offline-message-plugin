@@ -52,7 +52,6 @@ create_connector(Connector) ->
     end.
 
 delete_connector(Type, Name) ->
-    ct:print("Deleting connector ~s:~s", [Type, Name]),
     emqx_omp_test_helpers:api_delete({connectors, iolist_to_binary([Type, ":", Name])}).
 
 list_connectors() ->
@@ -65,7 +64,6 @@ list_connectors() ->
 
 delete_all_connectors() ->
     Connectors = list_connectors(),
-    ct:print("Deleting ~p connectors", [length(Connectors)]),
     lists:foreach(
         fun(#{<<"type">> := Type, <<"name">> := Name}) ->
             ok = delete_connector(Type, Name)
@@ -131,7 +129,6 @@ delete_plugin(PluginId) ->
 
 delete_all_plugins() ->
     Plugins = list_plugins(),
-    ct:print("Deleting ~p plugins", [length(Plugins)]),
     lists:foreach(
         fun(Plugin) ->
             ok = stop_plugin(plugin_id(Plugin)),
@@ -171,7 +168,6 @@ delete_rule(RuleId) ->
 
 delete_all_rules() ->
     Rules = list_rules(),
-    ct:print("Deleting ~p rules", [length(Rules)]),
     lists:foreach(
         fun(Rule) ->
             ok = delete_rule(rule_id(Rule))
@@ -207,7 +203,6 @@ delete_action(ActionId) ->
 
 delete_all_actions() ->
     Actions = list_actions(),
-    ct:print("Deleting ~p actions", [length(Actions)]),
     lists:foreach(fun(Action) -> ok = delete_action(action_id(Action)) end, Actions).
 
 %%--------------------------------------------------------------------

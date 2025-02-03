@@ -14,8 +14,22 @@
 
 -import(emqx_omp_test_helpers, [api_get/1, api_get_raw/1, api_post/2, api_delete/1]).
 
+%%--------------------------------------------------------------------
+%% CT Setup
+%%--------------------------------------------------------------------
+
 all() ->
-    emqx_omp_test_helpers:all(?MODULE).
+    [
+        {group, mysql}
+        % {group, redis}
+    ].
+
+groups() ->
+    All = emqx_omp_test_helpers:all(?MODULE),
+    [
+        {mysql, [], All},
+        {redis, [], All}
+    ].
 
 init_per_suite(Config) ->
     ok = emqx_omp_test_helpers:start(),
@@ -31,60 +45,94 @@ init_per_suite(Config) ->
     ok = emqx_omp_test_api_helpers:upload_plugin(Filename),
     ok = emqx_omp_test_api_helpers:start_plugin(PluginId),
 
-    %% create connectors
-    ok = emqx_omp_test_api_helpers:create_connector(redis_connector("omp")),
-    ok = emqx_omp_test_api_helpers:create_connector(mysql_connector("omp")),
-
     [{plugin_id, PluginId}, {plugin_filename, Filename} | Config].
 
 end_per_suite(_Config) ->
-    %% cleanup
-    % ok = emqx_omp_test_api_helpers:delete_all_plugins(),
-    % ok = emqx_omp_test_api_helpers:delete_all_connectors(),
-
+    % cleanup
+    ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
 
-t_ok(_Config) ->
+init_per_group(mysql, Config) ->
+    Connector = mysql_connector("omp"),
     PublishAction = publish_mysql_action("omp_publish_action", "omp"),
-    ct:print("PublishAction: ~p", [PublishAction]),
-    ok = emqx_omp_test_api_helpers:create_action(PublishAction),
-
     PublishRule = publish_mysql_rule("omp_publish_rule", "t/#", "mysql:omp_publish_action"),
-    ct:print("PublishRule: ~p", [PublishRule]),
-    ok = emqx_omp_test_api_helpers:create_rule(PublishRule),
-
     SubscribeAckRule = subscribe_ack_rule("omp_subscribe_ack_rule", "t/#", "mysql:omp", #{}),
+    [
+        {connector, Connector},
+        {publish_action, PublishAction},
+        {publish_rule, PublishRule},
+        {subscribe_ack_rule, SubscribeAckRule}
+        | Config
+    ].
+end_per_group(mysql, _Config) ->
+    ok = emqx_omp_test_api_helpers:delete_all_rules(),
+    ok = emqx_omp_test_api_helpers:delete_all_actions(),
+    ok = emqx_omp_test_api_helpers:delete_all_connectors(),
+    ok.
+
+init_per_testcase(_Case, Config) ->
+    Connector = ?config(connector, Config),
+    PublishAction = ?config(publish_action, Config),
+    PublishRule = ?config(publish_rule, Config),
+    SubscribeAckRule = ?config(subscribe_ack_rule, Config),
+    ok = emqx_omp_test_api_helpers:create_connector(Connector),
+    ok = emqx_omp_test_api_helpers:create_action(PublishAction),
+    ok = emqx_omp_test_api_helpers:create_rule(PublishRule),
     ok = emqx_omp_test_api_helpers:create_rule(SubscribeAckRule),
+    Config.
 
+end_per_testcase(_Case, _Config) ->
+    ok.
+
+%%--------------------------------------------------------------------
+%% Test cases
+%%--------------------------------------------------------------------
+
+t_ok(_Config) ->
+    %% create actions and rules
+    % PublishAction = publish_mysql_action("omp_publish_action", "omp"),
+    % ok = emqx_omp_test_api_helpers:create_action(PublishAction),
+    % PublishRule = publish_mysql_rule("omp_publish_rule", "t/#", "mysql:omp_publish_action"),
+    % ok = emqx_omp_test_api_helpers:create_rule(PublishRule),
+    % SubscribeAckRule = subscribe_ack_rule("omp_subscribe_ack_rule", "t/#", "mysql:omp", #{}),
+    % ok = emqx_omp_test_api_helpers:create_rule(SubscribeAckRule),
+
+    %% publish message
     Payload = emqx_guid:to_hexstr(emqx_guid:gen()),
-
     ClientPub = emqtt_connect(),
     _ = emqtt:publish(ClientPub, <<"t/1">>, Payload, 1),
     ok = emqtt:stop(ClientPub),
-
     ct:sleep(1000),
 
-    ClientSub = emqtt_connect(),
-    _ = emqtt:subscribe(ClientSub, <<"t/1">>, 1),
-
+    %% A new subscriber should receive the message
+    ClientSub0 = emqtt_connect(),
+    _ = emqtt:subscribe(ClientSub0, <<"t/1">>, 1),
     receive
-        {publish, #{payload := Payload} = Msg} ->
-            ct:print("Received message: ~p", [Msg])
+        {publish, #{payload := Payload}} ->
+            ok
     after 1000 ->
         ct:fail("Message not received")
     end,
+    ok = emqtt:stop(ClientSub0),
 
-    ok = emqtt:stop(ClientSub),
-
-    ok.
+    %% Another subscriber should NOT receive the message:
+    %% it should be deleted.
+    ClientSub1 = emqtt_connect(),
+    _ = emqtt:subscribe(ClientSub1, <<"t/1">>, 1),
+    receive
+        {publish, #{payload := Payload} = Msg1} ->
+            ct:fail("Message received: ~p", [Msg1])
+    after 1000 ->
+        ok
+    end,
+    ok = emqtt:stop(ClientSub1).
 
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
 
 emqtt_connect() ->
-    ct:print("Connecting to MQTT broker"),
     {ok, Pid} = emqtt:start_link([{host, "127.0.0.1"}, {port, 1883}]),
     {ok, _} = emqtt:connect(Pid),
     Pid.
