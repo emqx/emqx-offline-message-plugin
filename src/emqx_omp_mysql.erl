@@ -27,7 +27,6 @@
 -spec on_message_acked(Envs :: map(), ConnectorName :: binary(), Opts :: map()) -> ok.
 on_message_acked(#{id := MsgId} = Envs, ConnectorName, Opts) ->
     ResourceId = resource_id(ConnectorName),
-
     case emqx_resource:simple_sync_query(ResourceId, {sql, ?DELETE_SQL, [MsgId]}) of
         ok ->
             emqx_metrics_worker:inc(emqx_omp_metrics_worker, message_acked, success),

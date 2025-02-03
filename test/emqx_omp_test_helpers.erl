@@ -26,6 +26,7 @@ api_get(Path) ->
     handle_result(Result).
 
 api_get_raw(Path) ->
+    ct:pal("GET ~s~n~n", [api_url(Path)]),
     Result = hackney:request(get, api_url(Path), []),
     handle_result_raw(Result).
 
@@ -34,6 +35,8 @@ api_post(Path, Body) ->
     handle_result(Result).
 
 api_post_raw(Path, Headers0, Body) ->
+    HeadersS = [io_lib:format("~s: ~s~n", [Key, Value]) || {Key, Value} <- Headers0],
+    ct:pal("POST ~s~n~s~n~n...", [api_url(Path), iolist_to_binary(HeadersS)]),
     Headers = [auth_header() | Headers0],
     Result = hackney:request(post, api_url(Path), Headers, Body),
     handle_result_raw(Result).
@@ -51,16 +54,16 @@ api_delete(Path) ->
     handle_result(Result).
 
 make_request({get, Path}) ->
-    ct:print("GET ~s~n~n", [api_url(Path)]),
+    ct:pal("GET ~s~n~n", [api_url(Path)]),
     hackney:request(get, api_url(Path), headers());
 make_request({post, Path, Body}) ->
-    ct:print("POST ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
+    ct:pal("POST ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
     hackney:request(post, api_url(Path), headers(), encode_json(Body));
 make_request({put, Path, Body}) ->
-    ct:print("PUT ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
+    ct:pal("PUT ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
     hackney:request(put, api_url(Path), headers(), encode_json(Body));
 make_request({delete, Path}) ->
-    ct:print("DELETE ~s~n~n", [api_url(Path)]),
+    ct:pal("DELETE ~s~n~n", [api_url(Path)]),
     hackney:request(delete, api_url(Path), headers()).
 
 handle_result({ok, Code, _Headers, ClientRef}) when Code >= 200 andalso Code < 300 ->

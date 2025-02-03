@@ -48,7 +48,6 @@ init_per_suite(Config) ->
     [{plugin_id, PluginId}, {plugin_filename, Filename} | Config].
 
 end_per_suite(_Config) ->
-    % cleanup
     ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
@@ -90,20 +89,12 @@ end_per_testcase(_Case, _Config) ->
 %%--------------------------------------------------------------------
 
 t_ok(_Config) ->
-    %% create actions and rules
-    % PublishAction = publish_mysql_action("omp_publish_action", "omp"),
-    % ok = emqx_omp_test_api_helpers:create_action(PublishAction),
-    % PublishRule = publish_mysql_rule("omp_publish_rule", "t/#", "mysql:omp_publish_action"),
-    % ok = emqx_omp_test_api_helpers:create_rule(PublishRule),
-    % SubscribeAckRule = subscribe_ack_rule("omp_subscribe_ack_rule", "t/#", "mysql:omp", #{}),
-    % ok = emqx_omp_test_api_helpers:create_rule(SubscribeAckRule),
-
     %% publish message
     Payload = emqx_guid:to_hexstr(emqx_guid:gen()),
     ClientPub = emqtt_connect(),
     _ = emqtt:publish(ClientPub, <<"t/1">>, Payload, 1),
     ok = emqtt:stop(ClientPub),
-    ct:sleep(1000),
+    ct:sleep(500),
 
     %% A new subscriber should receive the message
     ClientSub0 = emqtt_connect(),
@@ -115,6 +106,7 @@ t_ok(_Config) ->
         ct:fail("Message not received")
     end,
     ok = emqtt:stop(ClientSub0),
+    ct:sleep(500),
 
     %% Another subscriber should NOT receive the message:
     %% it should be deleted.
