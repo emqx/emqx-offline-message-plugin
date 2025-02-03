@@ -51,12 +51,16 @@ api_delete(Path) ->
     handle_result(Result).
 
 make_request({get, Path}) ->
+    ct:print("GET ~s~n~n", [api_url(Path)]),
     hackney:request(get, api_url(Path), headers());
 make_request({post, Path, Body}) ->
+    ct:print("POST ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
     hackney:request(post, api_url(Path), headers(), encode_json(Body));
 make_request({put, Path, Body}) ->
+    ct:print("PUT ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
     hackney:request(put, api_url(Path), headers(), encode_json(Body));
 make_request({delete, Path}) ->
+    ct:print("DELETE ~s~n~n", [api_url(Path)]),
     hackney:request(delete, api_url(Path), headers()).
 
 handle_result({ok, Code, _Headers, ClientRef}) when Code >= 200 andalso Code < 300 ->
