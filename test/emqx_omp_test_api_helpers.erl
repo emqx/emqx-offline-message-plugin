@@ -20,7 +20,8 @@
     start_plugin/1,
     stop_plugin/1,
     delete_plugin/1,
-    delete_all_plugins/0
+    delete_all_plugins/0,
+    configure_plugin/2
 ]).
 
 %% Rule API
@@ -132,11 +133,18 @@ delete_all_plugins() ->
     lists:foreach(
         fun(Plugin) ->
             ok = stop_plugin(plugin_id(Plugin)),
-            ok = stop_plugin(plugin_id(Plugin)),
             ok = delete_plugin(plugin_id(Plugin))
         end,
         Plugins
     ).
+
+configure_plugin(PluginId, Config) ->
+    case emqx_omp_test_helpers:api_put({plugins, PluginId, config}, Config) of
+        ok ->
+            ok;
+        {error, Error} ->
+            error(Error)
+    end.
 
 %%--------------------------------------------------------------------
 %% Rule API

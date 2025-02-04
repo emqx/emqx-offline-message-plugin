@@ -1,0 +1,202 @@
+{
+  "type": "record",
+  "name": "ExtendedConfig",
+  "fields": [
+    {
+      "name": "mysql",
+      "type": {
+        "type": "record",
+        "name": "MySQLRecord",
+        "fields": [
+          {
+            "name": "enable",
+            "type": "boolean",
+            "default": false,
+            "$ui": {
+              "component": "switch",
+              "required": true,
+              "label": "$mysql_enable_label",
+              "description": "$mysql_enable_desc"
+            }
+          },
+          {
+            "name": "insert_message_sql",
+            "type": "string",
+            "default": "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived) values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_insert_message_sql_label",
+              "description": "$mysql_insert_message_sql_desc"
+            }
+          },
+          {
+            "name": "delete_message_sql",
+            "type": "string",
+            "default": "delete from mqtt_msg where msgid = ${id}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_delete_message_sql_label",
+              "description": "$mysql_delete_message_sql_desc"
+            }
+          },
+          {
+            "name": "select_message_sql",
+            "type": "string",
+            "default": "select * from mqtt_msg where msgid = ${id}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_select_message_sql_label",
+              "description": "$mysql_select_message_sql_desc"
+            }
+          },
+          {
+            "name": "insert_subscription_sql",
+            "type": "string",
+            "default": "insert into mqtt_sub(clientid, topic, qos) values(${clientid}, ${topic}, ${qos}) on duplicate key update qos = ${qos}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_insert_subscription_sql_label",
+              "description": "$mysql_insert_subscription_sql_desc"
+            }
+          },
+          {
+            "name": "select_subscriptions_sql",
+            "type": "string",
+            "default": "select topic, qos from mqtt_sub where clientid = ${clientid}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_select_subscriptions_sql_label",
+              "description": "$mysql_select_subscriptions_sql_desc"
+            }
+          },
+          {
+            "name": "server",
+            "type": "string",
+            "default": "127.0.0.1:3306",
+            "required": true,
+            "$ui": {
+              "component": "input",
+              "required": true,
+              "label": "$mysql_server_label",
+              "description": "$mysql_server_desc"
+            }
+          },
+          {
+            "name": "database",
+            "type": "string",
+            "default": "emqx",
+            "$ui": {
+              "component": "input",
+              "required": true,
+              "label": "$mysql_database_label",
+              "description": "$mysql_database_desc"
+            }
+          },
+          {
+            "name": "pool_size",
+            "type": "int",
+            "default": 8,
+            "$ui": {
+              "component": "input-number",
+              "required": true,
+              "label": "$mysql_pool_size_label",
+              "description": "$mysql_pool_size_desc"
+            }
+          },
+          {
+            "name": "username",
+            "type": "string",
+            "default": "emqx",
+            "$ui": {
+              "component": "input",
+              "required": true,
+              "label": "$mysql_username_label",
+              "description": "$mysql_username_desc"
+            }
+          },
+          {
+            "name": "password",
+            "type": "string",
+            "default": "public",
+            "$ui": {
+              "component": "input-password",
+              "required": false,
+              "label": "$mysql_password_label",
+              "description": "$mysql_password_desc"
+            }
+          },
+          {
+            "name": "batch_size",
+            "type": "int",
+            "default": 0,
+            "required": true,
+            "$ui": {
+              "component": "input-number",
+              "required": true,
+              "label": "$mysql_batch_size_label",
+              "description": "$mysql_batch_size_desc"
+            }
+          },
+          {
+            "name": "batch_time",
+            "type": "int",
+            "default": 100,
+            "required": true,
+            "$ui": {
+              "component": "input-number",
+              "required": true,
+              "label": "$mysql_batch_time_label",
+              "description": "$mysql_batch_time_desc"
+            }
+          },
+         {
+            "name": "ssl",
+            "type": {
+              "type": "record",
+              "name": "SSLRecord",
+              "fields": [
+                {
+                  "name": "enable",
+                  "type": "boolean",
+                  "default": false,
+                  "$ui": {
+                    "component": "switch",
+                    "required": true,
+                    "label": "$mysql_ssl_enable_label",
+                    "description": "$mysql_ssl_enable_desc"
+                  }
+                }
+              ]
+            }
+          }
+
+        ]
+      }
+    },
+    {
+      "name": "redis",
+      "type": {
+        "type": "record",
+        "name": "RedisRecord",
+        "fields": [
+          {
+            "name": "enable",
+            "type": "boolean",
+            "default": false,
+            "$ui": {
+              "component": "switch",
+              "required": true,
+              "label": "$enable_redis_label",
+              "description": "$enable_redis_desc"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

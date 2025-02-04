@@ -12,6 +12,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("common_test/include/ct.hrl").
 
+-define(set_config(KEY, VALUE, CONFIG), lists:keyreplace(KEY, 1, CONFIG, {KEY, VALUE})).
+
 -import(emqx_omp_test_helpers, [api_get/1, api_get_raw/1, api_post/2, api_delete/1]).
 
 %%--------------------------------------------------------------------
@@ -27,76 +29,71 @@ all() ->
 groups() ->
     All = emqx_omp_test_helpers:all(?MODULE),
     [
-        {mysql, [], All},
-        {redis, [], All}
+        {mysql, [], [{group, buffered}, {group, unbuffered}]},
+        {redis, [], [{group, buffered}, {group, unbuffered}]},
+        {buffered, [], All},
+        {unbuffered, [], All}
     ].
 
 init_per_suite(Config) ->
     ok = emqx_omp_test_helpers:start(),
 
     %% clean up
-    ok = emqx_omp_test_api_helpers:delete_all_rules(),
-    ok = emqx_omp_test_api_helpers:delete_all_actions(),
     ok = emqx_omp_test_api_helpers:delete_all_plugins(),
-    ok = emqx_omp_test_api_helpers:delete_all_connectors(),
 
     %% install plugin
     {PluginId, Filename} = emqx_omp_test_api_helpers:find_plugin(),
     ok = emqx_omp_test_api_helpers:upload_plugin(Filename),
     ok = emqx_omp_test_api_helpers:start_plugin(PluginId),
+    PluginConfig = plugin_config(),
 
-    [{plugin_id, PluginId}, {plugin_filename, Filename} | Config].
+    [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
 
 end_per_suite(_Config) ->
-    ok = emqx_omp_test_api_helpers:delete_all_plugins(),
+    % ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
 
 init_per_group(mysql, Config) ->
-    Connector = mysql_connector("omp"),
-    PublishAction = publish_mysql_action("omp_publish_action", "omp"),
-    PublishRule = publish_mysql_rule("omp_publish_rule", "t/#", "mysql:omp_publish_action"),
-    SubscribeAckRule = subscribe_ack_rule("omp_subscribe_ack_rule", "t/#", "mysql:omp", #{}),
-    [
-        {connector, Connector},
-        {publish_action, PublishAction},
-        {publish_rule, PublishRule},
-        {subscribe_ack_rule, SubscribeAckRule}
-        | Config
-    ].
-end_per_group(mysql, _Config) ->
-    ok = emqx_omp_test_api_helpers:delete_all_rules(),
-    ok = emqx_omp_test_api_helpers:delete_all_actions(),
-    ok = emqx_omp_test_api_helpers:delete_all_connectors(),
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, true),
+    ?set_config(plugin_config, PluginConfig, Config);
+init_per_group(buffered, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig = emqx_utils_maps:deep_put([mysql, batch_size], PluginConfig0, 10),
+    ?set_config(plugin_config, PluginConfig, Config);
+init_per_group(unbuffered, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig = emqx_utils_maps:deep_put([mysql, batch_size], PluginConfig0, 0),
+    ?set_config(plugin_config, PluginConfig, Config).
+
+end_per_group(_Group, _Config) ->
     ok.
 
 init_per_testcase(_Case, Config) ->
-    Connector = ?config(connector, Config),
-    PublishAction = ?config(publish_action, Config),
-    PublishRule = ?config(publish_rule, Config),
-    SubscribeAckRule = ?config(subscribe_ack_rule, Config),
-    ok = emqx_omp_test_api_helpers:create_connector(Connector),
-    ok = emqx_omp_test_api_helpers:create_action(PublishAction),
-    ok = emqx_omp_test_api_helpers:create_rule(PublishRule),
-    ok = emqx_omp_test_api_helpers:create_rule(SubscribeAckRule),
+    PluginId = ?config(plugin_id, Config),
+    PluginConfig = ?config(plugin_config, Config),
+    ok = emqx_omp_test_api_helpers:configure_plugin(PluginId, PluginConfig),
     Config.
 
 end_per_testcase(_Case, _Config) ->
+    PluginId = ?config(plugin_id, _Config),
+    ok = emqx_omp_test_api_helpers:configure_plugin(PluginId, empty_plugin_config()),
     ok.
 
 %%--------------------------------------------------------------------
 %% Test cases
 %%--------------------------------------------------------------------
 
-t_ok(_Config) ->
-    %% publish message
+t_different_subscribers(_Config) ->
+    % publish message
     Payload = emqx_guid:to_hexstr(emqx_guid:gen()),
     ClientPub = emqtt_connect(),
     _ = emqtt:publish(ClientPub, <<"t/1">>, Payload, 1),
     ok = emqtt:stop(ClientPub),
     ct:sleep(500),
 
-    %% A new subscriber should receive the message
+    % A new subscriber should receive the message
     ClientSub0 = emqtt_connect(),
     _ = emqtt:subscribe(ClientSub0, <<"t/1">>, 1),
     receive
@@ -120,100 +117,102 @@ t_ok(_Config) ->
     end,
     ok = emqtt:stop(ClientSub1).
 
+t_subscribition_persistence(_Config) ->
+    SubscriberOpts = [{clientid, <<"subscriber">>}, {clean_start, true}],
+
+    %% Subscribe to topic and disconnect loosing session (clean_start = true)
+    ClientSub0 = emqtt_connect(SubscriberOpts),
+    _ = emqtt:subscribe(ClientSub0, <<"t/2">>, 1),
+    ok = emqtt:stop(ClientSub0),
+
+    %% Publish message to topic
+    Payload0 = emqx_guid:to_hexstr(emqx_guid:gen()),
+    ClientPub = emqtt_connect(),
+    _ = emqtt:publish(ClientPub, <<"t/2">>, Payload0, 1),
+    ct:sleep(500),
+
+    %% Reconnect subscriber
+    %% It should revive the subscription
+    %% and receive the message
+    ClientSub1 = emqtt_connect(SubscriberOpts),
+    receive
+        {publish, #{payload := Payload0}} ->
+            ok
+    after 1000 ->
+        ct:fail("Message not received")
+    end,
+    ok = emqtt:stop(ClientSub1),
+
+    %% Reconnect subscriber again
+    %% It should NOT receive the old message
+    %% but receive the new ones
+    ClientSub2 = emqtt_connect(SubscriberOpts),
+    receive
+        {publish, #{payload := Payload0}} ->
+            ct:fail("Message received")
+    after 1000 ->
+        ok
+    end,
+    Payload1 = emqx_guid:to_hexstr(emqx_guid:gen()),
+    _ = emqtt:publish(ClientPub, <<"t/2">>, Payload1, 1),
+    receive
+        {publish, #{payload := Payload1}} ->
+            ok
+    after 1000 ->
+        ct:fail("Message not received")
+    end,
+
+    %% Cleanup
+    ok = emqtt:stop(ClientPub),
+    ok = emqtt:stop(ClientSub2).
+
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
 
 emqtt_connect() ->
-    {ok, Pid} = emqtt:start_link([{host, "127.0.0.1"}, {port, 1883}]),
+    emqtt_connect([]).
+
+emqtt_connect(Opts) ->
+    {ok, Pid} = emqtt:start_link(Opts ++ [{host, "127.0.0.1"}, {port, 1883}]),
     {ok, _} = emqtt:connect(Pid),
     Pid.
 
-redis_connector(Name) ->
+plugin_config() ->
     #{
-        <<"type">> => <<"redis">>,
-        <<"name">> => Name,
-        <<"parameters">> => #{
-            <<"server">> => <<"redis">>,
-            <<"redis_type">> => <<"single">>,
-            <<"pool_size">> => 8,
-            <<"password">> => <<"public">>,
-            <<"database">> => 0
+        redis => #{
+            enable => false
         },
-        <<"resource_opts">> => #{
-            <<"health_check_interval">> => <<"15s">>,
-            <<"start_timeout">> => <<"5s">>
-        },
-        <<"ssl">> => #{
-            <<"enable">> => false,
-            <<"verify">> => <<"verify_peer">>
-        }
-    }.
-
-mysql_connector(Name) ->
-    #{
-        <<"type">> => <<"mysql">>,
-        <<"name">> => iolist_to_binary(Name),
-        <<"server">> => <<"mysql">>,
-        <<"database">> => <<"emqx">>,
-        <<"pool_size">> => 8,
-        <<"username">> => <<"emqx">>,
-        <<"password">> => <<"public">>,
-        <<"ssl">> => #{
-            <<"enable">> => false,
-            <<"verify">> => <<"verify_peer">>
-        },
-        <<"resource_opts">> => #{
-            <<"health_check_interval">> => <<"15s">>,
-            <<"start_timeout">> => <<"5s">>
-        }
-    }.
-
-publish_mysql_action(Name, ConnectorName) ->
-    #{
-        <<"type">> => <<"mysql">>,
-        <<"name">> => iolist_to_binary(Name),
-        <<"parameters">> => #{
-            <<"sql">> => <<
-                "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived) values"
-                "(${id}, ${clientid}, ${topic}, ${qos}, ${retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))"
+        mysql => #{
+            ssl => #{
+                enable => false
+            },
+            password => <<"public">>,
+            username => <<"emqx">>,
+            pool_size => 8,
+            database => <<"emqx">>,
+            server => <<"localhost:3306">>,
+            select_message_sql => <<"select * from mqtt_msg where topic = ${topic}">>,
+            delete_message_sql => <<"delete from mqtt_msg where msgid = ${id}">>,
+            insert_message_sql => <<
+                "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived)"
+                "values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))"
             >>,
-            <<"undefined_vars_as_null">> => false
-        },
-        <<"enable">> => true,
-        <<"connector">> => iolist_to_binary(ConnectorName)
+            insert_subscription_sql => <<
+                "insert into mqtt_sub(clientid, topic, qos)"
+                "values(${clientid}, ${topic}, ${qos}) on duplicate key update qos = ${qos}"
+            >>,
+            select_subscriptions_sql => <<
+                "select topic, qos from mqtt_sub where clientid = ${clientid}"
+            >>,
+            enable => false,
+            batch_size => 0,
+            batch_time => 50
+        }
     }.
 
-publish_mysql_rule(Name, TopicFilter, PublishActionName) ->
-    PublishSQLTemplate =
-        "SELECT id, clientid, topic, qos, payload, timestamp, int(coalesce(flags.retain, 0)) as retain FROM \"~s\"",
-    PublishSQL = iolist_to_binary(io_lib:format(PublishSQLTemplate, [TopicFilter])),
-    PublishRule = #{
-        <<"name">> => iolist_to_binary(Name),
-        <<"actions">> => [iolist_to_binary(PublishActionName)],
-        <<"description">> => <<"Offline Message Plugin Publish Action">>,
-        <<"sql">> => PublishSQL
-    },
-    PublishRule.
-
-subscribe_ack_rule(Name, TopicFilter, ConnectorName, Opts) ->
-    SubscribeAckSQLTemplate =
-        "SELECT * FROM \"$events/session_subscribed\", \"$events/message_acked\" WHERE topic =~~ '~s'",
-    SubscribeAckSQL = iolist_to_binary(io_lib:format(SubscribeAckSQLTemplate, [TopicFilter])),
-
-    SubscribeAckRule = #{
-        <<"name">> => iolist_to_binary(Name),
-        <<"actions">> => [
-            #{
-                <<"function">> => <<"emqx_omp:action">>,
-                <<"args">> =>
-                    #{
-                        <<"connector_name">> => iolist_to_binary(ConnectorName),
-                        <<"opts">> => Opts
-                    }
-            }
-        ],
-        <<"description">> => <<"Offline Message Plugin Subscribe/Ack Action">>,
-        <<"sql">> => SubscribeAckSQL
-    },
-    SubscribeAckRule.
+empty_plugin_config() ->
+    PluginConfig0 = plugin_config(),
+    PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, false),
+    PluginConfig2 = emqx_utils_maps:deep_put([redis, enable], PluginConfig1, false),
+    PluginConfig2.

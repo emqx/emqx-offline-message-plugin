@@ -10,4 +10,12 @@ CREATE TABLE `mqtt_msg` (
   `arrived` datetime NOT NULL,
   PRIMARY KEY (`id`),
   INDEX topic_index(`topic`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4; 
+) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;
+
+DROP TABLE IF EXISTS `mqtt_sub`;
+CREATE TABLE `mqtt_sub` (
+  `clientid` varchar(64) NOT NULL,
+  `topic` varchar(180) NOT NULL,
+  `qos` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`clientid`, `topic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;

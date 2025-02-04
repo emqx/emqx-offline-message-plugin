@@ -6,28 +6,39 @@
 
 -include_lib("emqx/include/emqx.hrl").
 -include_lib("emqx/include/logger.hrl").
-
--behaviour(emqx_omp).
+-include_lib("emqx/include/emqx_hooks.hrl").
 
 -export([
-    on_message_acked/3,
-    on_session_subscribed/3
+    on_config_changed/2
 ]).
 
 %%--------------------------------------------------------------------
 %% Action
 %%--------------------------------------------------------------------
 
--spec on_message_acked(Envs :: map(), ConnectorName :: binary(), Opts :: map()) -> ok.
-on_message_acked(Envs, ConnectorName, Opts) ->
-    ?SLOG(warning, #{
-        msg => "on_message_acked", envs => Envs, connector_name => ConnectorName, opts => Opts
-    }),
+-spec on_config_changed(map(), map()) -> ok.
+on_config_changed(#{<<"enable">> := false}, #{<<"enable">> := false}) ->
+    ok;
+on_config_changed(#{<<"enable">> := true} = Conf, #{<<"enable">> := true} = Conf) ->
+    ok;
+on_config_changed(#{<<"enable">> := true} = _OldConf, #{<<"enable">> := true} = NewConf) ->
+    ok = stop(),
+    ok = start(NewConf);
+on_config_changed(#{<<"enable">> := true} = _OldConf, #{<<"enable">> := false} = _NewConf) ->
+    ok = stop();
+on_config_changed(#{<<"enable">> := false} = _OldConf, #{<<"enable">> := true} = NewConf) ->
+    ok = start(NewConf).
+
+%%--------------------------------------------------------------------
+%% start/stop
+%%--------------------------------------------------------------------
+
+-spec stop() -> ok.
+stop() ->
+    ?SLOG(info, #{msg => omp_redis_stop}),
     ok.
 
--spec on_session_subscribed(Envs :: map(), ConnectorName :: binary(), Opts :: map()) -> ok.
-on_session_subscribed(Envs, ConnectorName, Opts) ->
-    ?SLOG(warning, #{
-        msg => "on_session_subscribed", envs => Envs, connector_name => ConnectorName, opts => Opts
-    }),
+-spec start(map()) -> ok.
+start(ConfigRaw) ->
+    ?SLOG(info, #{msg => omp_redisstart, config => ConfigRaw}),
     ok.
