@@ -1,27 +1,30 @@
 services:
-  # emqx:
-  #   image: emqx/emqx-enterprise:5.8.4
-  #   container_name: emqx
-  #   environment:
-  #     EMQX_LOG__CONSOLE__LEVEL: debug
-  #     EMQX_API_KEY__BOOTSTRAP_FILE: "/opt/emqx-bootstrap/api-keys.txt"
-  #   ports:
-  #     - "1883:1883"
-  #     - "18083:18083"
-  #   networks:
-  #     - emqx_network
-  #   healthcheck:
-  #     test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
-  #     interval: 5s
-  #     timeout: 25s
-  #     retries: 5
-  #   volumes:
-  #     - ./test/assets/api-keys.txt:/opt/emqx-bootstrap/api-keys.txt
-  #   depends_on:
-  #     mysql:
-  #       condition: service_healthy
-  #     redis:
-  #       condition: service_healthy
+  emqx:
+    image: emqx/emqx-enterprise:5.8.4
+    container_name: emqx
+    environment:
+      EMQX_LOG__CONSOLE__LEVEL: debug
+      EMQX_API_KEY__BOOTSTRAP_FILE: "/opt/emqx-bootstrap/api-keys.txt"
+    ports:
+      - "1883:1883"
+      - "18083:18083"
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "/opt/emqx/bin/emqx", "ctl", "status"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+    volumes:
+      - ./test/assets/certs:/certs:ro
+      - ./test/assets/api-keys.txt:/opt/emqx-bootstrap/api-keys.txt:ro
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mysql-ssl:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   mysql:
     image: mysql:8.0

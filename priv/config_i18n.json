@@ -111,6 +111,48 @@
         "en": "MySQL SSL Enable",
         "zh": "MySQL SSL 启用"
     },
+    "$mysql_ssl_server_name_indication_label": {
+        "en": "MySQL SSL Server Name Indication",
+        "zh": "MySQL SSL 服务器名称指示"
+    },
+    "$mysql_ssl_server_name_indication_desc": {
+        "en": "MySQL SSL Server Name Indication",
+        "zh": "MySQL SSL 服务器名称指示"
+    },
+    "$mysql_ssl_verify_label": {
+        "en": "MySQL SSL Verify",
+        "zh": "MySQL SSL 验证"
+    },
+    "$mysql_ssl_verify_desc": {
+        "en": "MySQL SSL Verify",
+        "zh": "MySQL SSL 验证"
+    },
+    "$mysql_ssl_cacertfile_label": {
+        "en": "MySQL SSL CA Cert File",
+        "zh": "MySQL SSL CA 证书文件"
+    },
+    "$mysql_ssl_cacertfile_desc": {
+        "en": "MySQL SSL CA Cert File",
+        "zh": "MySQL SSL CA 证书文件"
+    },
+    "$mysql_ssl_certfile_label": {
+        "en": "MySQL SSL Cert File",
+        "zh": "MySQL SSL 证书文件"
+    },
+    "$mysql_ssl_certfile_desc": {
+        "en": "MySQL SSL Cert File",
+        "zh": "MySQL SSL 证书文件"
+    },
+    "$mysql_ssl_keyfile_label": {
+        "en": "MySQL SSL Key File",
+        "zh": "MySQL SSL 密钥文件"
+    },
+    "$mysql_ssl_keyfile_desc": {
+        "en": "MySQL SSL Key File",
+        "zh": "MySQL SSL 密钥文件"
+    },
+
+
     "$enable_redis_label": {
         "en": "Enable Redis",
         "zh": "启用 Redis"

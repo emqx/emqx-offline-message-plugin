@@ -31,8 +31,10 @@ groups() ->
     [
         {mysql, [], [{group, buffered}, {group, unbuffered}]},
         {redis, [], [{group, buffered}, {group, unbuffered}]},
-        {buffered, [], All},
-        {unbuffered, [], All}
+        {buffered, [], [{group, tcp}, {group, ssl}]},
+        {unbuffered, [], [{group, tcp}, {group, ssl}]},
+        {tcp, [], All},
+        {ssl, [], All}
     ].
 
 init_per_suite(Config) ->
@@ -50,7 +52,7 @@ init_per_suite(Config) ->
     [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
 
 end_per_suite(_Config) ->
-    % ok = emqx_omp_test_api_helpers:delete_all_plugins(),
+    ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
 
@@ -65,7 +67,17 @@ init_per_group(buffered, Config) ->
 init_per_group(unbuffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     PluginConfig = emqx_utils_maps:deep_put([mysql, batch_size], PluginConfig0, 0),
-    ?set_config(plugin_config, PluginConfig, Config).
+    ?set_config(plugin_config, PluginConfig, Config);
+init_per_group(tcp, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig0, false),
+    PluginConfig2 = emqx_utils_maps:deep_put([mysql, server], PluginConfig1, <<"mysql:3306">>),
+    ?set_config(plugin_config, PluginConfig2, Config);
+init_per_group(ssl, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig0, true),
+    PluginConfig2 = emqx_utils_maps:deep_put([mysql, server], PluginConfig1, <<"mysql-ssl:3306">>),
+    ?set_config(plugin_config, PluginConfig2, Config).
 
 end_per_group(_Group, _Config) ->
     ok.
@@ -185,13 +197,18 @@ plugin_config() ->
         },
         mysql => #{
             ssl => #{
-                enable => false
+                enable => false,
+                server_name_indication => <<"mysql-server">>,
+                verify => <<"verify_peer">>,
+                cacertfile => <<"/certs/ca.crt">>,
+                certfile => <<"/certs/mysql-client.crt">>,
+                keyfile => <<"/certs/mysql-client.key">>
             },
             password => <<"public">>,
             username => <<"emqx">>,
             pool_size => 8,
             database => <<"emqx">>,
-            server => <<"localhost:3306">>,
+            server => <<"invalid-host:3306">>,
             select_message_sql => <<"select * from mqtt_msg where topic = ${topic}">>,
             delete_message_sql => <<"delete from mqtt_msg where msgid = ${id}">>,
             insert_message_sql => <<

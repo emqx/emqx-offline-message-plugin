@@ -22,6 +22,7 @@
 
 -define(RESOURCE_ID, <<"omp_mysql">>).
 -define(RESOURCE_GROUP, <<"omp">>).
+-define(TIMEOUT, 1000).
 
 -type statement() :: emqx_template_sql:statement().
 -type param_template() :: emqx_template_sql:row_template().
@@ -89,7 +90,7 @@ on_client_connected(
     }),
     Params = render_row(ParamTemplate, #{clientid => ClientId}),
     _ =
-        case emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params}) of
+        case sync_query(Sql, Params) of
             {ok, Columns, Rows} ->
                 Subscriptions = to_subscriptions(Columns, Rows),
                 ok = induce_subscriptions(Subscriptions),
@@ -117,24 +118,29 @@ on_session_subscribed(
     ok = insert_subscription(ClientId, Topic, SubOpts, Context),
     ok = fetch_and_deliver_messages(ClientId, Topic, Context).
 
-insert_subscription(ClientId, Topic, SubOpts, #{insert_subscription_sql := {Sql, ParamTemplate}} = _Context) ->
+insert_subscription(
+    ClientId, Topic, SubOpts, #{insert_subscription_sql := {Sql, ParamTemplate}} = _Context
+) ->
     Qos = maps:get(qos, SubOpts, 0),
     Params = render_row(ParamTemplate, #{clientid => ClientId, topic => Topic, qos => Qos}),
-    _ = case emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params}) of
-        ok ->
-            ok;
-        {error, Reason} ->
-            ?SLOG(error, #{
-                msg => "omp_mysql_insert_subscription_error",
-                reason => Reason
-            })
+    _ =
+        case sync_query(Sql, Params) of
+            ok ->
+                ok;
+            {error, Reason} ->
+                ?SLOG(error, #{
+                    msg => "omp_mysql_insert_subscription_error",
+                    reason => Reason
+                })
         end,
     ok.
 
-fetch_and_deliver_messages(ClientId, Topic, #{select_message_sql := {Sql, ParamTemplate}} = _Context) ->
+fetch_and_deliver_messages(
+    ClientId, Topic, #{select_message_sql := {Sql, ParamTemplate}} = _Context
+) ->
     Params = render_row(ParamTemplate, #{clientid => ClientId, topic => Topic}),
     _ =
-        case emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params}) of
+        case sync_query(Sql, Params) of
             {ok, Columns, Rows} ->
                 Messages = to_messages(Columns, Rows),
                 ok = deliver_messages(Topic, Messages),
@@ -280,8 +286,11 @@ message_to_map(Message) ->
 
 %% Subscription helpers
 
-induce_subscriptions([]) -> ok;
-induce_subscriptions(Subscriptions) -> erlang:send(self(), {subscribe, Subscriptions}).
+induce_subscriptions([]) ->
+    ok;
+induce_subscriptions(Subscriptions) ->
+    erlang:send(self(), {subscribe, Subscriptions}),
+    ok.
 
 to_subscriptions(Columns, Rows) ->
     lists:flatmap(fun(Row) -> record_to_subscription(lists:zip(Columns, Row)) end, Rows).
@@ -357,7 +366,7 @@ render_row(RowTemplate, Map) ->
     Row.
 
 make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement} = RawConfig0) ->
-    RawMysqlConfig = maps:with(
+    RawMysqlConfig0 = maps:with(
         [
             <<"server">>,
             <<"database">>,
@@ -368,6 +377,8 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
         ],
         RawConfig0
     ),
+    SslConfig = make_ssl_config(RawMysqlConfig0),
+    RawMysqlConfig = RawMysqlConfig0#{<<"ssl">> => SslConfig},
 
     MysqlConfig0 =
         case
@@ -396,6 +407,22 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
     },
 
     {MysqlConfig, ResourceOpts}.
+
+make_ssl_config(#{<<"ssl">> := SslConfig}) ->
+    maps:filter(
+        fun
+            (_K, <<>>) ->
+                false;
+            (_K, _V) ->
+                true
+        end,
+        SslConfig
+    );
+make_ssl_config(_) ->
+    #{<<"enable">> => false}.
+
+sync_query(Sql, Params) ->
+    emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params, ?TIMEOUT}).
 
 %% Hook helpers
 
