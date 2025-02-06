@@ -36,7 +36,34 @@ services:
     ports:
       - "3306:3306"
     volumes:
-      - ./data/mysql:/var/lib/mysql
+      - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  mysql-ssl:
+    image: mysql:8.0
+    container_name: mysql-ssl
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --ssl-ca=/certs/ca.crt
+      --ssl-cert=/certs/mysql-server.crt
+      --ssl-key=/certs/mysql-server.key
+      --require-secure-transport=ON
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: public
+      MYSQL_DATABASE: emqx
+      MYSQL_USER: emqx
+      MYSQL_PASSWORD: public
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./test/assets/certs:/certs:ro
       - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     networks:
       - emqx_network
@@ -52,8 +79,6 @@ services:
     command: redis-server --requirepass public
     ports:
       - "6379:6379"
-    volumes:
-      - ./data/redis:/data
     networks:
       - emqx_network
     healthcheck:
