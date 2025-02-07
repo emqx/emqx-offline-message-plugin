@@ -53,12 +53,14 @@ on_config_changed(OldConf, NewConf) ->
     ?SLOG(info, #{
         msg => "offline_message_plugin_config_changed", old_conf => OldConf, new_conf => NewConf
     }),
+    %% MySQL
     DefaultConf = #{<<"enable">> => false},
     OldMysqlConf = maps:get(<<"mysql">>, OldConf, DefaultConf),
-    OldRedisConf = maps:get(<<"redis">>, OldConf, DefaultConf),
     NewMysqlConf = maps:get(<<"mysql">>, NewConf, DefaultConf),
-    NewRedisConf = maps:get(<<"redis">>, NewConf, DefaultConf),
     ok = emqx_omp_mysql:on_config_changed(OldMysqlConf, NewMysqlConf),
+    %% Redis
+    OldRedisConf = maps:get(<<"redis">>, OldConf, DefaultConf),
+    NewRedisConf = maps:get(<<"redis">>, NewConf, DefaultConf),
     ok = emqx_omp_redis:on_config_changed(OldRedisConf, NewRedisConf),
     ok.
 

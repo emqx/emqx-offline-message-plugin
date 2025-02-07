@@ -22,8 +22,8 @@
 
 all() ->
     [
-        {group, mysql}
-        % {group, redis}
+        % {group, mysql},
+        {group, redis}
     ].
 
 groups() ->
@@ -34,7 +34,7 @@ groups() ->
         {buffered, [], [{group, tcp}, {group, ssl}]},
         {unbuffered, [], [{group, tcp}, {group, ssl}]},
         {tcp, [], All},
-        {ssl, [], All}
+        {ssl, [], []}
     ].
 
 init_per_suite(Config) ->
@@ -59,24 +59,32 @@ end_per_suite(_Config) ->
 init_per_group(mysql, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     PluginConfig = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, true),
-    ?set_config(plugin_config, PluginConfig, Config);
+    [{backend, mysql} | ?set_config(plugin_config, PluginConfig, Config)];
+init_per_group(redis, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
+    [{backend, redis} | ?set_config(plugin_config, PluginConfig, Config)];
 init_per_group(buffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig = emqx_utils_maps:deep_put([mysql, batch_size], PluginConfig0, 10),
+    Backend = ?config(backend, Config),
+    PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 10),
     ?set_config(plugin_config, PluginConfig, Config);
 init_per_group(unbuffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig = emqx_utils_maps:deep_put([mysql, batch_size], PluginConfig0, 0),
+    Backend = ?config(backend, Config),
+    PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 1),
     ?set_config(plugin_config, PluginConfig, Config);
 init_per_group(tcp, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig0, false),
-    PluginConfig2 = emqx_utils_maps:deep_put([mysql, server], PluginConfig1, <<"mysql:3306">>),
+    Backend = ?config(backend, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([Backend, ssl, enable], PluginConfig0, false),
+    PluginConfig2 = set_server(Backend, tcp, PluginConfig1),
     ?set_config(plugin_config, PluginConfig2, Config);
 init_per_group(ssl, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([mysql, server], PluginConfig1, <<"mysql-ssl:3306">>),
+    Backend = ?config(backend, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([Backend, ssl, enable], PluginConfig0, true),
+    PluginConfig2 = set_server(Backend, ssl, PluginConfig1),
     ?set_config(plugin_config, PluginConfig2, Config).
 
 end_per_group(_Group, _Config) ->
@@ -86,6 +94,7 @@ init_per_testcase(_Case, Config) ->
     PluginId = ?config(plugin_id, Config),
     PluginConfig = ?config(plugin_config, Config),
     ok = emqx_omp_test_api_helpers:configure_plugin(PluginId, PluginConfig),
+    ct:print("PluginConfig: ~p", [PluginConfig]),
     Config.
 
 end_per_testcase(_Case, _Config) ->
@@ -191,24 +200,35 @@ emqtt_connect(Opts) ->
     Pid.
 
 plugin_config() ->
+    DefaultSSLConfig = #{
+        enable => false,
+        verify => <<"verify_peer">>,
+        cacertfile => <<"/certs/ca.crt">>,
+        certfile => <<"/certs/mysql-client.crt">>,
+        keyfile => <<"/certs/mysql-client.key">>
+    },
+
     #{
         redis => #{
-            enable => false
+            enable => false,
+            ssl => DefaultSSLConfig#{server_name_indication => <<"redis-server">>},
+            servers => <<"invalid-host:6379">>,
+            redis_type => <<"single">>,
+            pool_size => 8,
+            username => <<"">>,
+            password => <<"">>,
+            database => 0,
+            batch_size => 1,
+            batch_time => 50
         },
         mysql => #{
-            ssl => #{
-                enable => false,
-                server_name_indication => <<"mysql-server">>,
-                verify => <<"verify_peer">>,
-                cacertfile => <<"/certs/ca.crt">>,
-                certfile => <<"/certs/mysql-client.crt">>,
-                keyfile => <<"/certs/mysql-client.key">>
-            },
+            enable => false,
+            ssl => DefaultSSLConfig#{server_name_indication => <<"mysql-server">>},
+            server => <<"invalid-host:3306">>,
             password => <<"public">>,
             username => <<"emqx">>,
             pool_size => 8,
             database => <<"emqx">>,
-            server => <<"invalid-host:3306">>,
             select_message_sql => <<"select * from mqtt_msg where topic = ${topic}">>,
             delete_message_sql => <<"delete from mqtt_msg where msgid = ${id}">>,
             insert_message_sql => <<
@@ -222,8 +242,7 @@ plugin_config() ->
             select_subscriptions_sql => <<
                 "select topic, qos from mqtt_sub where clientid = ${clientid}"
             >>,
-            enable => false,
-            batch_size => 0,
+            batch_size => 1,
             batch_time => 50
         }
     }.
@@ -233,3 +252,12 @@ empty_plugin_config() ->
     PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, false),
     PluginConfig2 = emqx_utils_maps:deep_put([redis, enable], PluginConfig1, false),
     PluginConfig2.
+
+set_server(mysql, tcp, Config) ->
+    emqx_utils_maps:deep_put([mysql, server], Config, <<"mysql:3306">>);
+set_server(mysql, ssl, Config) ->
+    emqx_utils_maps:deep_put([mysql, server], Config, <<"mysql-ssl:3306">>);
+set_server(redis, tcp, Config) ->
+    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis:6379">>);
+set_server(redis, ssl, Config) ->
+    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6379">>).

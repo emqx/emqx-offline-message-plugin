@@ -377,22 +377,9 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
         ],
         RawConfig0
     ),
-    SslConfig = make_ssl_config(RawMysqlConfig0),
-    RawMysqlConfig = RawMysqlConfig0#{<<"ssl">> => SslConfig},
+    RawMysqlConfig = emqx_omp_utils:fix_ssl_config(RawMysqlConfig0),
 
-    MysqlConfig0 =
-        case
-            emqx_hocon:check(
-                emqx_mysql,
-                #{<<"config">> => RawMysqlConfig},
-                #{atom_key => true}
-            )
-        of
-            {ok, #{config := Config}} ->
-                Config;
-            {error, Reason} ->
-                error({invalid_omp_mysql_config, Reason})
-        end,
+    MysqlConfig0 = emqx_omp_utils:check_config(emqx_mysql, RawMysqlConfig),
 
     MysqlConfig = MysqlConfig0#{
         prepare_statement => #{
@@ -400,26 +387,10 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
         }
     },
 
-    ResourceOpts = #{
-        start_after_created => true,
-        batch_size => 10,
-        batch_time => 50
-    },
+    ResourceOpts = emqx_omp_utils:make_resource_opts(RawConfig0),
 
     {MysqlConfig, ResourceOpts}.
 
-make_ssl_config(#{<<"ssl">> := SslConfig}) ->
-    maps:filter(
-        fun
-            (_K, <<>>) ->
-                false;
-            (_K, _V) ->
-                true
-        end,
-        SslConfig
-    );
-make_ssl_config(_) ->
-    #{<<"enable">> => false}.
 
 sync_query(Sql, Params) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params, ?TIMEOUT}).
