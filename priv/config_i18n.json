@@ -12,48 +12,48 @@
         "zh": "插入消息 SQL"
     },
     "$mysql_insert_message_sql_desc": {
-        "en": "Insert Message SQL",
-        "zh": "插入消息 SQL"
+        "en": "SQL statement for inserting messages",
+        "zh": "用于插入消息的 SQL 语句"
     },
     "$mysql_delete_message_sql_label": {
         "en": "Delete Message SQL",
         "zh": "删除消息 SQL"
     },
     "$mysql_delete_message_sql_desc": {
-        "en": "Delete Message SQL",
-        "zh": "删除消息 SQL"
+        "en": "SQL statement for deleting messages",
+        "zh": "用于删除消息的 SQL 语句"
     },
     "$mysql_select_message_sql_label": {
         "en": "Select Message SQL",
         "zh": "查询消息 SQL"
     },
     "$mysql_select_message_sql_desc": {
-        "en": "Select Message SQL",
-        "zh": "查询消息 SQL"
+        "en": "SQL statement for retrieving messages",
+        "zh": "用于检索消息的 SQL 语句"
     },
     "$mysql_insert_subscription_sql_label": {
         "en": "Insert Subscription SQL",
         "zh": "插入订阅 SQL"
     },
     "$mysql_insert_subscription_sql_desc": {
-        "en": "Insert Subscription SQL",
-        "zh": "插入订阅 SQL"
+        "en": "SQL statement for inserting subscriptions",
+        "zh": "用于插入订阅的 SQL 语句"
     },
     "$mysql_select_subscriptions_sql_label": {
         "en": "Select Subscriptions SQL",
         "zh": "查询订阅 SQL"
     },
     "$mysql_select_subscriptions_sql_desc": {
-        "en": "Select Subscriptions SQL",
-        "zh": "查询订阅 SQL"
+        "en": "SQL statement for retrieving subscriptions",
+        "zh": "用于检索订阅的 SQL 语句"
     },
     "$mysql_server_label": {
         "en": "MySQL Server",
         "zh": "MySQL 服务器"
     },
     "$mysql_server_desc": {
-        "en": "MySQL Server",
-        "zh": "MySQL 服务器"
+        "en": "MySQL server addresses",
+        "zh": "MySQL 服务器地址"
     },
     "$mysql_database_label": {
         "en": "MySQL Database",
@@ -68,7 +68,7 @@
         "zh": "MySQL 连接池大小"
     },
     "$mysql_pool_size_desc": {
-        "en": "MySQL Pool Size",
+        "en": "MySQL connection pool size",
         "zh": "MySQL 连接池大小"
     },
     "$mysql_username_label": {
@@ -92,64 +92,64 @@
         "zh": "MySQL 批量大小"
     },
     "$mysql_batch_size_desc": {
-        "en": "MySQL Batch Size",
-        "zh": "MySQL 批量大小"
+        "en": "Number of messages to batch before writing",
+        "zh": "写入前批量处理的消息数量"
     },
     "$mysql_batch_time_label": {
         "en": "MySQL Batch Time (ms)",
         "zh": "MySQL 批量时间 (ms)"
     },
     "$mysql_batch_time_desc": {
-        "en": "MySQL Batch Time (ms)",
-        "zh": "MySQL 批量时间 (ms)"
+        "en": "Maximum time in milliseconds to wait before writing a batch",
+        "zh": "写入批量数据前等待的最大时间（毫秒）"
     },
     "$mysql_ssl_enable_label": {
         "en": "MySQL SSL Enable",
         "zh": "MySQL SSL 启用"
     },
     "$mysql_ssl_enable_desc": {
-        "en": "MySQL SSL Enable",
-        "zh": "MySQL SSL 启用"
+        "en": "Enable SSL/TLS connection",
+        "zh": "启用 SSL/TLS 连接"
     },
     "$mysql_ssl_server_name_indication_label": {
         "en": "MySQL SSL Server Name Indication",
         "zh": "MySQL SSL 服务器名称指示"
     },
     "$mysql_ssl_server_name_indication_desc": {
-        "en": "MySQL SSL Server Name Indication",
-        "zh": "MySQL SSL 服务器名称指示"
+        "en": "SSL Server Name Indication (SNI)",
+        "zh": "SSL 服务器名称指示 (SNI)"
     },
     "$mysql_ssl_verify_label": {
         "en": "MySQL SSL Verify",
         "zh": "MySQL SSL 验证"
     },
     "$mysql_ssl_verify_desc": {
-        "en": "MySQL SSL Verify",
-        "zh": "MySQL SSL 验证"
+        "en": "SSL verification level",
+        "zh": "SSL 验证级别"
     },
     "$mysql_ssl_cacertfile_label": {
         "en": "MySQL SSL CA Cert File",
         "zh": "MySQL SSL CA 证书文件"
     },
     "$mysql_ssl_cacertfile_desc": {
-        "en": "MySQL SSL CA Cert File",
-        "zh": "MySQL SSL CA 证书文件"
+        "en": "Path to SSL CA certificate file",
+        "zh": "SSL CA 证书文件路径"
     },
     "$mysql_ssl_certfile_label": {
         "en": "MySQL SSL Cert File",
         "zh": "MySQL SSL 证书文件"
     },
     "$mysql_ssl_certfile_desc": {
-        "en": "MySQL SSL Cert File",
-        "zh": "MySQL SSL 证书文件"
+        "en": "Path to SSL certificate file",
+        "zh": "SSL 证书文件路径"
     },
     "$mysql_ssl_keyfile_label": {
         "en": "MySQL SSL Key File",
         "zh": "MySQL SSL 密钥文件"
     },
     "$mysql_ssl_keyfile_desc": {
-        "en": "MySQL SSL Key File",
-        "zh": "MySQL SSL 密钥文件"
+        "en": "Path to SSL key file",
+        "zh": "SSL 密钥文件路径"
     },
 
 
@@ -160,5 +160,141 @@
     "$enable_redis_desc": {
         "en": "Enable Redis integration",
         "zh": "启用 Redis 集成"
+    },
+    "$redis_type_label": {
+        "en": "Redis Type",
+        "zh": "Redis 类型"
+    },
+    "$redis_type_desc": {
+        "en": "Redis deployment type (Single/Cluster/Sentinel)",
+        "zh": "Redis 部署类型 (单机/集群/哨兵)"
+    },
+    "$redis_server_label": {
+        "en": "Redis Servers",
+        "zh": "Redis 服务器"
+    },
+    "$redis_server_desc": {
+        "en": "Redis server addresses",
+        "zh": "Redis 服务器地址"
+    },
+    "$redis_username_label": {
+        "en": "Redis Username",
+        "zh": "Redis 用户名"
+    },
+    "$redis_username_desc": {
+        "en": "Redis Username",
+        "zh": "Redis 用户名"
+    },
+    "$redis_password_label": {
+        "en": "Redis Password",
+        "zh": "Redis 密码"
+    },
+    "$redis_password_desc": {
+        "en": "Redis Password",
+        "zh": "Redis 密码"
+    },
+    "$redis_database_label": {
+        "en": "Redis Database",
+        "zh": "Redis 数据库"
+    },
+    "$redis_database_desc": {
+        "en": "Redis Database",
+        "zh": "Redis 数据库"
+    },
+    "$redis_pool_size_label": {
+        "en": "Redis Pool Size",
+        "zh": "Redis 连接池大小"
+    },
+    "$redis_pool_size_desc": {
+        "en": "Redis connection pool size",
+        "zh": "Redis 连接池大小"
+    },
+    "$redis_message_key_prefix_label": {
+        "en": "Message Key Prefix",
+        "zh": "消息键前缀"
+    },
+    "$redis_message_key_prefix_desc": {
+        "en": "Prefix for message keys in Redis",
+        "zh": "Redis 中消息键的前缀"
+    },
+    "$redis_subscription_key_prefix_label": {
+        "en": "Subscription Key Prefix",
+        "zh": "订阅键前缀"
+    },
+    "$redis_subscription_key_prefix_desc": {
+        "en": "Prefix for subscription keys in Redis",
+        "zh": "Redis 中订阅键的前缀"
+    },
+    "$redis_message_ttl_label": {
+        "en": "Message TTL",
+        "zh": "消息存活时间"
+    },
+    "$redis_message_ttl_desc": {
+        "en": "Time to live for messages in seconds",
+        "zh": "消息的存活时间（秒）"
+    },
+    "$redis_batch_size_label": {
+        "en": "Batch Size",
+        "zh": "批量大小"
+    },
+    "$redis_batch_size_desc": {
+        "en": "Number of messages to batch before writing",
+        "zh": "写入前批量处理的消息数量"
+    },
+    "$redis_batch_time_label": {
+        "en": "Batch Time",
+        "zh": "批量时间"
+    },
+    "$redis_batch_time_desc": {
+        "en": "Maximum time in milliseconds to wait before writing a batch",
+        "zh": "写入批量数据前等待的最大时间（毫秒）"
+    },
+    "$redis_ssl_enable_label": {
+        "en": "Enable SSL",
+        "zh": "启用 SSL"
+    },
+    "$redis_ssl_enable_desc": {
+        "en": "Enable SSL/TLS connection",
+        "zh": "启用 SSL/TLS 连接"
+    },
+    "$redis_ssl_server_name_indication_label": {
+        "en": "SSL Server Name Indication",
+        "zh": "SSL 服务器名称指示"
+    },
+    "$redis_ssl_server_name_indication_desc": {
+        "en": "SSL Server Name Indication (SNI)",
+        "zh": "SSL 服务器名称指示 (SNI)"
+    },
+    "$redis_ssl_verify_label": {
+        "en": "SSL Verify",
+        "zh": "SSL 验证"
+    },
+    "$redis_ssl_verify_desc": {
+        "en": "SSL verification level",
+        "zh": "SSL 验证级别"
+    },
+    "$redis_ssl_cacertfile_label": {
+        "en": "SSL CA Certificate",
+        "zh": "SSL CA 证书"
+    },
+    "$redis_ssl_cacertfile_desc": {
+        "en": "Path to SSL CA certificate file",
+        "zh": "SSL CA 证书文件路径"
+    },
+    "$redis_ssl_certfile_label": {
+        "en": "SSL Certificate",
+        "zh": "SSL 证书"
+    },
+    "$redis_ssl_certfile_desc": {
+        "en": "Path to SSL certificate file",
+        "zh": "SSL 证书文件路径"
+    },
+    "$redis_ssl_keyfile_label": {
+        "en": "SSL Key File",
+        "zh": "SSL 密钥文件"
+    },
+    "$redis_ssl_keyfile_desc": {
+        "en": "Path to SSL key file",
+        "zh": "SSL 密钥文件路径"
     }
 }

@@ -14,6 +14,18 @@ all(Suite) ->
         string:substr(atom_to_list(F), 1, 2) == "t_"
     ]).
 
+nested_groups([GroupsNames, LeafItems]) ->
+    [
+        {Group, [], LeafItems}
+        || Group <- GroupsNames
+    ];
+nested_groups([ParentNames, ChildNames | Names]) ->
+    ChildGroups = [{group, GroupName} || GroupName <- ChildNames],
+    [
+        {ParentName, [], ChildGroups}
+     || ParentName <- ParentNames
+    ] ++ nested_groups([ChildNames | Names]).
+
 start() ->
     {ok, _} = application:ensure_all_started(hackney),
     ok.

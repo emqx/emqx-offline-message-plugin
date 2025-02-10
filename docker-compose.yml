@@ -90,6 +90,44 @@ services:
       timeout: 25s
       retries: 5
 
+  redis-ssl:
+    image: redis:7.0
+    container_name: redis-ssl
+    command: >
+      redis-server
+      --requirepass public
+      --tls-port 6380
+      --port 0
+      --tls-cert-file /certs/redis-server.crt
+      --tls-key-file /certs/redis-server.key
+      --tls-ca-cert-file /certs/ca.crt
+    ports:
+      - "6380:6380"
+    volumes:
+      - ./test/assets/certs:/certs:ro
+    networks:
+      - emqx_network
+    healthcheck:
+      test:
+        - "CMD"
+        - "redis-cli"
+        - "--tls"
+        - "--cert"
+        - "/certs/redis-server.crt"
+        - "--key"
+        - "/certs/redis-server.key"
+        - "--cacert"
+        - "/certs/ca.crt"
+        - "-h"
+        - "localhost"
+        - "-p"
+        - "6380"
+        - "-a"
+        - "public"
+        - "ping"
+      timeout: 25s
+      retries: 5
+
 networks:
   emqx_network:
     driver: bridge

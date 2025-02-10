@@ -93,7 +93,7 @@ on_client_connected(
         case sync_query(Sql, Params) of
             {ok, Columns, Rows} ->
                 Subscriptions = to_subscriptions(Columns, Rows),
-                ok = induce_subscriptions(Subscriptions),
+                ok = emqx_omp_utils:induce_subscriptions(Subscriptions),
                 ok;
             {error, Reason} ->
                 ?SLOG(warning, #{
@@ -143,7 +143,7 @@ fetch_and_deliver_messages(
         case sync_query(Sql, Params) of
             {ok, Columns, Rows} ->
                 Messages = to_messages(Columns, Rows),
-                ok = deliver_messages(Topic, Messages),
+                ok = emqx_omp_utils:deliver_messages(Topic, Messages),
                 emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, success);
             {error, Reason} ->
                 emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, fail),
@@ -198,7 +198,7 @@ on_message_acked(
     }),
     Params = render_row(ParamTemplate, #{id => emqx_guid:to_hexstr(MsgId)}),
     _ =
-        case emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params}) of
+        case sync_query(Sql, Params) of
             ok ->
                 emqx_metrics_worker:inc(emqx_omp_metrics_worker, message_acked, success);
             {error, Reason} ->
@@ -215,14 +215,6 @@ on_message_acked(
 %%--------------------------------------------------------------------
 
 %% Message helpers
-
-deliver_messages(Topic, Messages) ->
-    lists:foreach(
-        fun(Message) ->
-            erlang:send(self(), {deliver, Topic, Message})
-        end,
-        Messages
-    ).
 
 to_messages(Columns, Rows) ->
     [record_to_msg(lists:zip(Columns, Row)) || Row <- Rows].
@@ -285,12 +277,6 @@ message_to_map(Message) ->
     ).
 
 %% Subscription helpers
-
-induce_subscriptions([]) ->
-    ok;
-induce_subscriptions(Subscriptions) ->
-    erlang:send(self(), {subscribe, Subscriptions}),
-    ok.
 
 to_subscriptions(Columns, Rows) ->
     lists:flatmap(fun(Row) -> record_to_subscription(lists:zip(Columns, Row)) end, Rows).

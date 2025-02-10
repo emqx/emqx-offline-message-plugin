@@ -113,7 +113,7 @@
             "default": "emqx",
             "$ui": {
               "component": "input",
-              "required": true,
+              "required": false,
               "label": "$mysql_username_label",
               "description": "$mysql_username_desc"
             }
@@ -325,6 +325,39 @@
               "required": false,
               "label": "$redis_password_label",
               "description": "$redis_password_desc"
+            }
+          },
+          {
+            "name": "message_key_prefix",
+            "type": "string",
+            "default": "mqtt:msg",
+            "$ui": {
+              "component": "input",
+              "required": true,
+              "label": "$redis_message_key_prefix_label",
+              "description": "$redis_message_key_prefix_desc"
+            }
+          },
+          {
+            "name": "subscription_key_prefix",
+            "type": "string",
+            "default": "mqtt:sub",
+            "$ui": {
+              "component": "input",
+              "required": true,
+              "label": "$redis_subscription_key_prefix_label",
+              "description": "$redis_subscription_key_prefix_desc"
+            }
+          },
+          {
+            "name": "message_ttl",
+            "type": "int",
+            "default": 7200,
+            "$ui": {
+              "component": "input-number",
+              "required": true,
+              "label": "$redis_message_ttl_label",
+              "description": "$redis_message_ttl_desc"
             }
           },
           {

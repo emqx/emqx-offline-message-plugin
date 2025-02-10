@@ -25,6 +25,9 @@ redis {
     pool_size = 8
     username = ""
     password = ""
+    message_key_prefix = "mqtt:msg"
+    subscription_key_prefix = "mqtt:sub"
+    message_ttl = 7200
     database = 0
 }
 
