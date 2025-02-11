@@ -13,6 +13,8 @@ mysql {
     select_message_sql = "select * from mqtt_msg where msgid = ${id}"
     insert_subscription_sql = "insert into mqtt_sub(clientid, topic, qos) values(${clientid}, ${topic}, ${qos}) on duplicate key update qos = ${qos}"
     select_subscriptions_sql = "select topic, qos from mqtt_sub where clientid = ${clientid}"
+    batch_size = 1
+    batch_time = 100
 }
 
 redis {
@@ -24,11 +26,13 @@ redis {
     redis_type = "single"
     pool_size = 8
     username = ""
-    password = ""
+    password = "public"
     message_key_prefix = "mqtt:msg"
     subscription_key_prefix = "mqtt:sub"
     message_ttl = 7200
     database = 0
+    batch_size = 1
+    batch_time = 100
 }
 
 
