@@ -58,8 +58,8 @@ on_config_changed(#{<<"enable">> := false} = _OldConf, #{<<"enable">> := true} =
 
 -spec stop() -> ok.
 stop() ->
-    ok = stop_resource(),
-    unhook().
+    unhook(),
+    ok = stop_resource().
 
 -spec start(map()) -> ok.
 start(ConfigRaw) ->

@@ -24,6 +24,10 @@
 -define(RESOURCE_GROUP, <<"omp">>).
 -define(FETCH_MSG_BATCH_SIZE, 100).
 
+-define(DEFAULT_MESSAGE_TTL, 7200).
+-define(DEFAULT_SUBSCRIPTION_KEY_PREFIX, <<"mqtt:sub">>).
+-define(DEFAULT_MESSAGE_KEY_PREFIX, <<"mqtt:msg">>).
+
 -type context() :: map().
 
 %%--------------------------------------------------------------------
@@ -42,6 +46,34 @@ on_config_changed(#{<<"enable">> := true} = _OldConf, #{<<"enable">> := false} =
     ok = stop();
 on_config_changed(#{<<"enable">> := false} = _OldConf, #{<<"enable">> := true} = NewConf) ->
     ok = start(NewConf).
+
+%%--------------------------------------------------------------------
+%% start/stop
+%%--------------------------------------------------------------------
+
+-spec stop() -> ok.
+stop() ->
+    unhook(),
+    ok = stop_resource().
+
+-spec start(map()) -> ok.
+start(ConfigRaw) ->
+    ?SLOG(info, #{msg => omp_redis_start, config => ConfigRaw}),
+    {RedisConfig, ResourceOpts} = make_redis_resource_config(ConfigRaw),
+    ok = start_resource(RedisConfig, ResourceOpts),
+
+    Context = #{
+        message_key_prefix => maps:get(
+            <<"message_key_prefix">>, ConfigRaw, ?DEFAULT_MESSAGE_KEY_PREFIX
+        ),
+        subscription_key_prefix => maps:get(
+            <<"subscription_key_prefix">>, ConfigRaw, ?DEFAULT_SUBSCRIPTION_KEY_PREFIX
+        ),
+        message_ttl => maps:get(
+            <<"message_ttl">>, ConfigRaw, ?DEFAULT_MESSAGE_TTL
+        )
+    },
+    hook(Context).
 
 %%--------------------------------------------------------------------
 %% Callbacks
@@ -101,8 +133,6 @@ insert_subscription(
     ok.
 
 fetch_and_deliver_messages(Topic, Context) ->
-    % Topic = ?C(topic, Msg),
-    % MsgTab = table_name(?MSG,Topic),
     case fetch_message_ids(Topic, Context) of
         {ok, MsgIds} ->
             Messages = fetch_messages(MsgIds, Context),
@@ -316,30 +346,6 @@ to_subscriptions([Topic, QoSBin | KVs]) ->
     [{Topic, #{qos => binary_to_integer(QoSBin)}} | to_subscriptions(KVs)];
 to_subscriptions([]) ->
     [].
-
-%%--------------------------------------------------------------------
-%% start/stop
-%%--------------------------------------------------------------------
-
--spec stop() -> ok.
-stop() ->
-    ok = stop_resource(),
-    unhook().
-
--spec start(map()) -> ok.
-start(ConfigRaw) ->
-    ?SLOG(info, #{msg => omp_redis_start, config => ConfigRaw}),
-    {RedisConfig, ResourceOpts} = make_redis_resource_config(ConfigRaw),
-    ok = start_resource(RedisConfig, ResourceOpts),
-
-    Context = #{
-        message_key_prefix => maps:get(<<"message_key_prefix">>, ConfigRaw, <<"mqtt:msg">>),
-        subscription_key_prefix => maps:get(
-            <<"subscription_key_prefix">>, ConfigRaw, <<"mqtt:sub">>
-        ),
-        message_ttl => maps:get(<<"message_ttl">>, ConfigRaw, 7200)
-    },
-    hook(Context).
 
 %% Resource helpers
 
