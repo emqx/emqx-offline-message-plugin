@@ -151,7 +151,22 @@
               "description": "$mysql_batch_time_desc"
             }
           },
-         {
+          {
+            "name": "query_mode",
+            "type": "string",
+            "default": "sync",
+            "$ui": {
+              "component": "select",
+              "required": true,
+              "label": "$mysql_query_mode_label",
+              "description": "$mysql_query_mode_desc",
+              "options": [
+                { "label": "Sync", "value": "sync" },
+                { "label": "Async", "value": "async" }
+              ]
+            }
+          },
+          {
             "name": "ssl",
             "type": {
               "type": "record",
@@ -311,7 +326,7 @@
             "default": "",
             "$ui": {
               "component": "input",
-              "required": true,
+              "required": false,
               "label": "$redis_username_label",
               "description": "$redis_username_desc"
             }
@@ -380,6 +395,21 @@
               "required": true,
               "label": "$redis_batch_time_label",
               "description": "$redis_batch_time_desc"
+            }
+          },
+          {
+            "name": "query_mode",
+            "type": "string",
+            "default": "sync",
+            "$ui": {
+              "component": "select",
+              "required": true,
+              "label": "$redis_query_mode_label",
+              "description": "$redis_query_mode_desc",
+              "options": [
+                { "label": "Sync", "value": "sync" },
+                { "label": "Async", "value": "async" }
+              ]
             }
           },
           {
