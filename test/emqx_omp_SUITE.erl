@@ -31,6 +31,7 @@ all() ->
 groups() ->
     emqx_omp_test_helpers:nested_groups([
         [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
+        [sync, async],
         [buffered, unbuffered],
         emqx_omp_test_helpers:all(?MODULE)
     ]).
@@ -54,6 +55,9 @@ end_per_suite(_Config) ->
     ok = emqx_omp_test_helpers:stop(),
     ok.
 
+%%
+%% Different backends
+%%
 init_per_group(mysql_tcp, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, true),
@@ -78,6 +82,9 @@ init_per_group(redis_ssl, Config) ->
     PluginConfig2 = emqx_utils_maps:deep_put([redis, ssl, enable], PluginConfig1, true),
     PluginConfig3 = set_server(redis_ssl, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
+%%
+%% buffered/unbuffered
+%%
 init_per_group(buffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
@@ -87,6 +94,19 @@ init_per_group(unbuffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
     PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 1),
+    ?set_config(plugin_config, PluginConfig, Config);
+%%
+%% sync/async
+%%
+init_per_group(sync, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    Backend = ?config(backend, Config),
+    PluginConfig = emqx_utils_maps:deep_put([Backend, query_mode], PluginConfig0, <<"sync">>),
+    ?set_config(plugin_config, PluginConfig, Config);
+init_per_group(async, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    Backend = ?config(backend, Config),
+    PluginConfig = emqx_utils_maps:deep_put([Backend, query_mode], PluginConfig0, <<"async">>),
     ?set_config(plugin_config, PluginConfig, Config).
 
 end_per_group(_Group, _Config) ->
@@ -188,6 +208,9 @@ t_subscribition_persistence(_Config) ->
     ok = emqtt:stop(ClientPub),
     ok = emqtt:stop(ClientSub2).
 
+%% TODO
+%% Test message order
+
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
@@ -223,7 +246,8 @@ plugin_config() ->
             subscription_key_prefix => <<"mqtt:sub">>,
             message_ttl => 7200,
             batch_size => 1,
-            batch_time => 50
+            batch_time => 50,
+            query_mode => <<"sync">>
         },
         mysql => #{
             enable => false,
@@ -247,7 +271,8 @@ plugin_config() ->
                 "select topic, qos from mqtt_sub where clientid = ${clientid}"
             >>,
             batch_size => 1,
-            batch_time => 50
+            batch_time => 50,
+            query_mode => <<"sync">>
         }
     }.
 

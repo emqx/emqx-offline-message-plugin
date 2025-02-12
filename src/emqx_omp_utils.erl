@@ -29,9 +29,15 @@ fix_ssl_config(RawConfig) ->
 make_resource_opts(RawConfig) ->
     #{
         start_after_created => true,
-        batch_size => maps:get(<<"batch_size">>, RawConfig, 0),
-        batch_time => maps:get(<<"batch_time">>, RawConfig, 100)
+        batch_size => maps:get(<<"batch_size">>, RawConfig, 1),
+        batch_time => maps:get(<<"batch_time">>, RawConfig, 100),
+        query_mode => query_mode(maps:get(<<"query_mode">>, RawConfig, <<"sync">>))
     }.
+
+query_mode(<<"async">>) ->
+    async;
+query_mode(_) ->
+    sync.
 
 check_config(Schema, ConfigRaw) ->
     case
