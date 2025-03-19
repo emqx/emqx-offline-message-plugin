@@ -71,7 +71,8 @@ start(ConfigRaw) ->
         ),
         message_ttl => maps:get(
             <<"message_ttl">>, ConfigRaw, ?DEFAULT_MESSAGE_TTL
-        )
+        ),
+        topic_filters => emqx_omp_utils:topic_filters(ConfigRaw)
     },
     hook(Context).
 
@@ -229,15 +230,15 @@ on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
 
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
     {ok, Message};
-on_message_publish(Message, #{message_ttl := TTL} = Context) ->
+on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters} = Context) ->
     _ =
-        case emqx_message:qos(Message) of
-            0 ->
+        case emqx_omp_utils:need_persist_message(Message, TopicFilters) of
+            false ->
                 ?SLOG(debug, #{
                     msg => omp_redis_message_publish_qos0,
                     message => Message
                 });
-            _ ->
+            true ->
                 Topic = emqx_message:topic(Message),
                 MsgId = emqx_message:id(Message),
                 Now = erlang:system_time(millisecond),

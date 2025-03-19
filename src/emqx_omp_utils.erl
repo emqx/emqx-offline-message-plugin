@@ -4,12 +4,16 @@
 
 -module(emqx_omp_utils).
 
+-include_lib("emqx/include/logger.hrl").
+
 -export([
     fix_ssl_config/1,
     make_resource_opts/1,
     check_config/2,
     deliver_messages/2,
-    induce_subscriptions/1
+    induce_subscriptions/1,
+    need_persist_message/2,
+    topic_filters/1
 ]).
 
 fix_ssl_config(#{<<"ssl">> := SslConfig0} = RawConfig) ->
@@ -66,3 +70,23 @@ induce_subscriptions([]) ->
 induce_subscriptions(Subscriptions) ->
     erlang:send(self(), {subscribe, Subscriptions}),
     ok.
+
+topic_filters(ConfigRaw) ->
+    TopicFiltersRaw = maps:get(<<"topics">>, ConfigRaw, []),
+    [emqx_topic:words(TopicFilterRaw) || TopicFilterRaw <- TopicFiltersRaw].
+
+need_persist_message(Message, TopicFilters) ->
+    ?SLOG(debug, #{
+        msg => omp_utils_need_persist_message,
+        message => emqx_message:to_map(Message),
+        topic_filters => TopicFilters,
+        topic => emqx_message:topic(Message)
+    }),
+    is_message_qos_nonzero(Message) andalso does_message_topic_match(Message, TopicFilters).
+
+is_message_qos_nonzero(Message) ->
+    emqx_message:qos(Message) =/= 0.
+
+does_message_topic_match(Message, TopicFilters) ->
+    Topic = emqx_message:topic(Message),
+    lists:any(fun(Filter) -> emqx_topic:match(Topic, Filter) end, TopicFilters).

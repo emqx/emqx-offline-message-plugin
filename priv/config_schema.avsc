@@ -130,6 +130,20 @@
             }
           },
           {
+            "name": "topics",
+            "type": {
+              "type": "array",
+              "items": "string"
+            },
+            "default": [],
+            "$ui": {
+              "component": "input-array",
+              "required": false,
+              "label": "$mysql_topics_label",
+              "description": "$mysql_topics_desc"
+            }
+          },
+          {
             "name": "batch_size",
             "type": "int",
             "default": 1,
@@ -307,6 +321,20 @@
               "required": true,
               "label": "$redis_database_label",
               "description": "$redis_database_desc"
+            }
+          },
+          {
+            "name": "topics",
+            "type": {
+              "type": "array",
+              "items": "string"
+            },
+            "default": [],
+            "$ui": {
+              "component": "input-array",
+              "required": false,
+              "label": "$redis_topics_label",
+              "description": "$redis_topics_desc"
             }
           },
           {

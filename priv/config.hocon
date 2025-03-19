@@ -9,6 +9,7 @@ mysql {
         keyfile = "/certs/mysql-client.key"
     }
     server = "mysql:3306"
+    topics = []
     pool_size = 8
     username = "emqx"
     password = "public"

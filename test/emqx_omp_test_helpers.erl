@@ -17,7 +17,7 @@ all(Suite) ->
 nested_groups([GroupsNames, LeafItems]) ->
     [
         {Group, [], LeafItems}
-        || Group <- GroupsNames
+     || Group <- GroupsNames
     ];
 nested_groups([ParentNames, ChildNames | Names]) ->
     ChildGroups = [{group, GroupName} || GroupName <- ChildNames],
@@ -139,5 +139,3 @@ decode_json(Body) ->
 
 encode_json(Data) ->
     jiffy:encode(Data).
-
-

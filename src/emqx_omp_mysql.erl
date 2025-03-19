@@ -70,7 +70,11 @@ start(ConfigRaw) ->
         [delete_message_sql, select_message_sql, insert_subscription_sql, select_subscriptions_sql],
         ConfigRaw
     ),
-    Context = Statements,
+    TopicFilters = emqx_omp_utils:topic_filters(ConfigRaw),
+    Context = #{
+        statements => Statements,
+        topic_filters => TopicFilters
+    },
     hook(Context).
 
 %%-------------------------------------------------------------------
@@ -80,7 +84,7 @@ start(ConfigRaw) ->
 on_client_connected(
     ClientInfo = #{clientid := ClientId},
     ConnInfo,
-    #{select_subscriptions_sql := {Sql, ParamTemplate}} = _Context
+    #{statements := #{select_subscriptions_sql := {Sql, ParamTemplate}}} = _Context
 ) ->
     ?SLOG(info, #{
         msg => omp_mysql_client_connected,
@@ -119,7 +123,10 @@ on_session_subscribed(
     ok = fetch_and_deliver_messages(ClientId, Topic, Context).
 
 insert_subscription(
-    ClientId, Topic, SubOpts, #{insert_subscription_sql := {Sql, ParamTemplate}} = _Context
+    ClientId,
+    Topic,
+    SubOpts,
+    #{statements := #{insert_subscription_sql := {Sql, ParamTemplate}}} = _Context
 ) ->
     Qos = maps:get(qos, SubOpts, 0),
     Params = render_row(ParamTemplate, #{clientid => ClientId, topic => Topic, qos => Qos}),
@@ -136,7 +143,7 @@ insert_subscription(
     ok.
 
 fetch_and_deliver_messages(
-    ClientId, Topic, #{select_message_sql := {Sql, ParamTemplate}} = _Context
+    ClientId, Topic, #{statements := #{select_message_sql := {Sql, ParamTemplate}}} = _Context
 ) ->
     Params = render_row(ParamTemplate, #{clientid => ClientId, topic => Topic}),
     _ =
@@ -154,7 +161,7 @@ fetch_and_deliver_messages(
         end,
     ok.
 
-on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
+on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Context) ->
     ?SLOG(info, #{
         msg => omp_mysql_session_unsubscribed,
         clientid => ClientId,
@@ -163,17 +170,17 @@ on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
     }),
     ok.
 
-on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
+on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Context) ->
     {ok, Message};
-on_message_publish(Message, _Context) ->
+on_message_publish(Message, #{topic_filters := TopicFilters} = _Context) ->
     _ =
-        case emqx_message:qos(Message) of
-            0 ->
+        case emqx_omp_utils:need_persist_message(Message, TopicFilters) of
+            false ->
                 ?SLOG(debug, #{
-                    msg => omp_mysql_message_publish_qos0,
+                    msg => omp_mysql_message_publish_skipped,
                     message => Message
                 });
-            _ ->
+            true ->
                 MessageMap = message_to_map(Message),
                 Res = emqx_resource:query(?RESOURCE_ID, {insert_message, MessageMap}),
                 ?SLOG(info, #{
@@ -187,9 +194,7 @@ on_message_publish(Message, _Context) ->
 on_message_acked(
     _ClientInfo = #{clientid := ClientId},
     #message{id = MsgId} = Message,
-    #{
-        delete_message_sql := {Sql, ParamTemplate}
-    }
+    #{statements := #{delete_message_sql := {Sql, ParamTemplate}}} = _Context
 ) ->
     ?SLOG(info, #{
         msg => omp_mysql_message_puback,
@@ -376,7 +381,6 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
     ResourceOpts = emqx_omp_utils:make_resource_opts(RawConfig0),
 
     {MysqlConfig, ResourceOpts}.
-
 
 sync_query(Sql, Params) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params, ?TIMEOUT}).

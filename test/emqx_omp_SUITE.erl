@@ -47,7 +47,6 @@ init_per_suite(Config) ->
     ok = emqx_omp_test_api_helpers:upload_plugin(Filename),
     ok = emqx_omp_test_api_helpers:start_plugin(PluginId),
     PluginConfig = plugin_config(),
-
     [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
 
 end_per_suite(_Config) ->
@@ -237,6 +236,7 @@ plugin_config() ->
             enable => false,
             ssl => DefaultSSLConfig#{server_name_indication => <<"redis-server">>},
             servers => <<"invalid-host:6379">>,
+            topics => [<<"t/#">>],
             redis_type => <<"single">>,
             pool_size => 8,
             username => <<"">>,
@@ -252,6 +252,7 @@ plugin_config() ->
         mysql => #{
             enable => false,
             ssl => DefaultSSLConfig#{server_name_indication => <<"mysql-server">>},
+            topics => [<<"t/#">>],
             server => <<"invalid-host:3306">>,
             password => <<"public">>,
             username => <<"emqx">>,

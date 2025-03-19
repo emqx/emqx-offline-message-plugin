@@ -63,4 +63,3 @@ on_config_changed(OldConf, NewConf) ->
     NewRedisConf = maps:get(<<"redis">>, NewConf, DefaultConf),
     ok = emqx_omp_redis:on_config_changed(OldRedisConf, NewRedisConf),
     ok.
-

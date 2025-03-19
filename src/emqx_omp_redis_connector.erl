@@ -39,9 +39,10 @@ on_batch_query(InstId, Batch, State) ->
                 {cmd, Cmd} -> [Cmd];
                 {cmds, Cmds} -> Cmds
             end
-        end, Batch),
+        end,
+        Batch
+    ),
     emqx_redis:on_query(InstId, {cmds, Cmds}, State).
 
 on_get_status(InstId, State) ->
     emqx_redis:on_get_status(InstId, State).
-
