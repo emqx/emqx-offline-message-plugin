@@ -8,6 +8,8 @@
 -include_lib("emqx/include/logger.hrl").
 -include_lib("emqx/include/emqx_hooks.hrl").
 
+-include("emqx_omp.hrl").
+
 -export([
     on_config_changed/2
 ]).
@@ -138,9 +140,9 @@ fetch_and_deliver_messages(Topic, Context) ->
         {ok, MsgIds} ->
             Messages = fetch_messages(MsgIds, Context),
             ok = emqx_omp_utils:deliver_messages(Topic, Messages),
-            emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, success);
+            emqx_metrics_worker:inc(?METRICS_WORKER, session_subscribed, success);
         {error, Reason} ->
-            emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, fail),
+            emqx_metrics_worker:inc(?METRICS_WORKER, session_subscribed, fail),
             ?SLOG(error, #{
                 msg => "omp_redis_fetch_message_ids_error",
                 reason => Reason
@@ -183,7 +185,7 @@ fetch_messages(MsgIds, Context) ->
     fetch_messages(MsgIds, [], [], Context).
 
 fetch_messages([], [], Acc, _Context) ->
-    Acc;
+    lists:reverse(Acc);
 fetch_messages(MsgIds, MsgIdBatchAcc, Acc0, Context) when
     length(MsgIdBatchAcc) >= ?FETCH_MSG_BATCH_SIZE orelse
         (length(MsgIds) =:= 0 andalso length(MsgIdBatchAcc) > 0)
@@ -194,7 +196,7 @@ fetch_messages(MsgIds, MsgIdBatchAcc, Acc0, Context) when
     ],
     case sync_cmds(Cmds) of
         {ok, Results} ->
-            Acc = append_results(Results, Acc0),
+            Acc = append_results(lists:reverse(Results), Acc0),
             fetch_messages(MsgIds, [], Acc, Context);
         {error, Reason} ->
             ?SLOG(error, #{
@@ -274,13 +276,17 @@ on_message_acked(
         [<<"DEL">>, msg_table(Context, MsgIDb62)],
         [<<"ZREM">>, msg_table(Context, Topic), MsgIDb62]
     ],
-    Res = emqx_resource:simple_sync_query(?RESOURCE_ID, {cmds, Cmds}),
-    ?SLOG(info, #{
-        msg => omp_redis_message_puback,
-        message => Message,
-        result => Res,
-        clientid => ClientId
-    }).
+    case emqx_resource:simple_sync_query(?RESOURCE_ID, {cmds, Cmds}) of
+        {ok, _} ->
+            emqx_metrics_worker:inc(?METRICS_WORKER, message_acked, success);
+        {error, Reason} ->
+            emqx_metrics_worker:inc(?METRICS_WORKER, message_acked, fail),
+            ?SLOG(error, #{
+                msg => "omp_redis_message_puback_error",
+                reason => Reason
+            })
+    end,
+    ok.
 
 %%--------------------------------------------------------------------
 %% Internal functions

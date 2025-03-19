@@ -16,8 +16,5 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    ChildSpec = emqx_metrics_worker:child_spec(
-        ?METRICS_WORKER,
-        emqx_omp_metrics_worker
-    ),
+    ChildSpec = emqx_metrics_worker:child_spec(?METRICS_WORKER),
     {ok, {{one_for_all, 0, 1}, [ChildSpec]}}.

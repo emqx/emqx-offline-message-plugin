@@ -1,6 +1,6 @@
 services:
   emqx:
-    image: emqx/emqx-enterprise:5.8.4
+    image: emqx/emqx-enterprise:5.8.5
     container_name: emqx
     environment:
       EMQX_LOG__CONSOLE__LEVEL: debug

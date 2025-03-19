@@ -50,7 +50,7 @@ init_per_suite(Config) ->
     [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
 
 end_per_suite(_Config) ->
-    ok = emqx_omp_test_api_helpers:delete_all_plugins(),
+    % ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
 
@@ -127,16 +127,18 @@ end_per_testcase(_Case, _Config) ->
 %%--------------------------------------------------------------------
 
 t_different_subscribers(_Config) ->
+    Topic = unique_topic(),
+
     % publish message
-    Payload = emqx_guid:to_hexstr(emqx_guid:gen()),
+    Payload = unique_payload(),
     ClientPub = emqtt_connect(),
-    _ = emqtt:publish(ClientPub, <<"t/1">>, Payload, 1),
+    _ = emqtt:publish(ClientPub, Topic, Payload, 1),
     ok = emqtt:stop(ClientPub),
     ct:sleep(500),
 
     % A new subscriber should receive the message
     ClientSub0 = emqtt_connect(),
-    _ = emqtt:subscribe(ClientSub0, <<"t/1">>, 1),
+    _ = emqtt:subscribe(ClientSub0, Topic, 1),
     receive
         {publish, #{payload := Payload}} ->
             ok
@@ -149,7 +151,7 @@ t_different_subscribers(_Config) ->
     %% Another subscriber should NOT receive the message:
     %% it should be deleted.
     ClientSub1 = emqtt_connect(),
-    _ = emqtt:subscribe(ClientSub1, <<"t/1">>, 1),
+    _ = emqtt:subscribe(ClientSub1, Topic, 1),
     receive
         {publish, #{payload := Payload} = Msg1} ->
             ct:fail("Message received: ~p", [Msg1])
@@ -159,17 +161,19 @@ t_different_subscribers(_Config) ->
     ok = emqtt:stop(ClientSub1).
 
 t_subscribition_persistence(_Config) ->
-    SubscriberOpts = [{clientid, <<"subscriber">>}, {clean_start, true}],
+    ClientId = unique_clientid(),
+    Topic = unique_topic(),
+    SubscriberOpts = [{clientid, ClientId}, {clean_start, true}],
 
     %% Subscribe to topic and disconnect loosing session (clean_start = true)
     ClientSub0 = emqtt_connect(SubscriberOpts),
-    _ = emqtt:subscribe(ClientSub0, <<"t/2">>, 1),
+    _ = emqtt:subscribe(ClientSub0, Topic, 1),
     ok = emqtt:stop(ClientSub0),
 
     %% Publish message to topic
-    Payload0 = emqx_guid:to_hexstr(emqx_guid:gen()),
+    Payload0 = unique_payload(),
     ClientPub = emqtt_connect(),
-    _ = emqtt:publish(ClientPub, <<"t/2">>, Payload0, 1),
+    _ = emqtt:publish(ClientPub, Topic, Payload0, 1),
     ct:sleep(500),
 
     %% Reconnect subscriber
@@ -194,8 +198,8 @@ t_subscribition_persistence(_Config) ->
     after 1000 ->
         ok
     end,
-    Payload1 = emqx_guid:to_hexstr(emqx_guid:gen()),
-    _ = emqtt:publish(ClientPub, <<"t/2">>, Payload1, 1),
+    Payload1 = unique_payload(),
+    _ = emqtt:publish(ClientPub, Topic, Payload1, 1),
     receive
         {publish, #{payload := Payload1}} ->
             ok
@@ -207,8 +211,37 @@ t_subscribition_persistence(_Config) ->
     ok = emqtt:stop(ClientPub),
     ok = emqtt:stop(ClientSub2).
 
-%% TODO
-%% Test message order
+t_message_order(_Config) ->
+    Topic = unique_topic(),
+
+    % publish message
+    ClientPub = emqtt_connect(),
+    lists:foreach(
+        fun(I) ->
+            Payload = integer_to_binary(I),
+            _ = emqtt:publish(ClientPub, Topic, Payload, 1)
+        end,
+        lists:seq(1, 200)
+    ),
+    ok = emqtt:stop(ClientPub),
+    ct:sleep(500),
+
+    %% Collect messages
+    ClientSub = emqtt_connect(),
+    _ = emqtt:subscribe(ClientSub, Topic, 1),
+    Messages = receive_messages(),
+    ok = emqtt:stop(ClientSub),
+
+    %% Check messages order
+    ?assertEqual(lists:seq(1, 200), Messages).
+
+receive_messages() ->
+    receive
+        {publish, #{payload := Payload}} ->
+            [binary_to_integer(Payload) | receive_messages()]
+    after 500 ->
+        []
+    end.
 
 %%--------------------------------------------------------------------
 %% Internal functions
@@ -262,7 +295,8 @@ plugin_config() ->
             delete_message_sql => <<"delete from mqtt_msg where msgid = ${id}">>,
             insert_message_sql => <<
                 "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived)"
-                "values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))"
+                "values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, "
+                "${payload}, FROM_UNIXTIME(${timestamp}/1000))"
             >>,
             insert_subscription_sql => <<
                 "insert into mqtt_sub(clientid, topic, qos)"
@@ -291,3 +325,15 @@ set_server(redis_tcp, Config) ->
     emqx_utils_maps:deep_put([redis, servers], Config, <<"redis:6379">>);
 set_server(redis_ssl, Config) ->
     emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>).
+
+unique_id() ->
+    <<(emqx_guid:to_hexstr(emqx_guid:gen()))/binary>>.
+
+unique_topic() ->
+    <<"t/", (unique_id())/binary>>.
+
+unique_clientid() ->
+    <<"c/", (unique_id())/binary>>.
+
+unique_payload() ->
+    <<"p/", (unique_id())/binary>>.

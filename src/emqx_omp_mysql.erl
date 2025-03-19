@@ -8,6 +8,8 @@
 -include_lib("emqx/include/logger.hrl").
 -include_lib("emqx/include/emqx_hooks.hrl").
 
+-include("emqx_omp.hrl").
+
 -export([
     on_config_changed/2
 ]).
@@ -23,6 +25,31 @@
 -define(RESOURCE_ID, <<"omp_mysql">>).
 -define(RESOURCE_GROUP, <<"omp">>).
 -define(TIMEOUT, 1000).
+
+% -define(INIT_SQL, [
+%     """
+%     CREATE TABLE IF NOT EXISTS `mqtt_msg` (
+%         `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+%         `msgid` varchar(64) DEFAULT NULL,
+%         `topic` varchar(180) NOT NULL,
+%         `sender` varchar(64) DEFAULT NULL,
+%         `qos` tinyint(1) NOT NULL DEFAULT '0',
+%         `retain` tinyint(1) DEFAULT NULL,
+%         `payload` blob,
+%         `arrived` datetime NOT NULL,
+%         PRIMARY KEY (`id`),
+%         INDEX topic_index(`topic`)
+%     ) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;
+%     """,
+%     """
+%     CREATE TABLE IF NOT EXISTS `mqtt_sub` (
+%         `clientid` varchar(64) NOT NULL,
+%         `topic` varchar(180) NOT NULL,
+%         `qos` tinyint(1) NOT NULL DEFAULT '0',
+%         PRIMARY KEY (`clientid`, `topic`)
+%     ) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;
+%     """
+% ]).
 
 -type statement() :: emqx_template_sql:statement().
 -type param_template() :: emqx_template_sql:row_template().
@@ -150,10 +177,15 @@ fetch_and_deliver_messages(
         case sync_query(Sql, Params) of
             {ok, Columns, Rows} ->
                 Messages = to_messages(Columns, Rows),
+                ?SLOG(debug, #{
+                    msg => omp_mysql_fetch_and_deliver_messages,
+                    topic => Topic,
+                    messages => length(Messages)
+                }),
                 ok = emqx_omp_utils:deliver_messages(Topic, Messages),
-                emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, success);
+                emqx_metrics_worker:inc(?METRICS_WORKER, session_subscribed, success);
             {error, Reason} ->
-                emqx_metrics_worker:inc(emqx_omp_metrics_worker, session_subscribed, fail),
+                emqx_metrics_worker:inc(?METRICS_WORKER, session_subscribed, fail),
                 ?SLOG(error, #{
                     msg => "omp_mysql_on_session_subscribed_error",
                     reason => Reason
@@ -205,9 +237,14 @@ on_message_acked(
     _ =
         case sync_query(Sql, Params) of
             ok ->
-                emqx_metrics_worker:inc(emqx_omp_metrics_worker, message_acked, success);
+                emqx_metrics_worker:inc(?METRICS_WORKER, message_acked, success),
+                ?SLOG(debug, #{
+                    msg => "omp_mysql_message_puback_success",
+                    message => emqx_message:to_map(Message),
+                    clientid => ClientId
+                });
             {error, Reason} ->
-                emqx_metrics_worker:inc(emqx_omp_metrics_worker, message_acked, fail),
+                emqx_metrics_worker:inc(?METRICS_WORKER, message_acked, fail),
                 ?SLOG(error, #{
                     msg => "omp_mysql_on_message_acked_error",
                     reason => Reason
@@ -329,33 +366,6 @@ stop_resource() ->
     }),
     emqx_resource:remove_local(?RESOURCE_ID).
 
-parse_statements(Keys, BinMap) ->
-    lists:foldl(
-        fun(Key, StatementsAcc) ->
-            BinKey = atom_to_binary(Key, utf8),
-            StatementRaw = maps:get(BinKey, BinMap),
-            Parsed = parse_statement(StatementRaw),
-            StatementsAcc#{Key => Parsed}
-        end,
-        #{},
-        Keys
-    ).
-
-parse_statement(StatementRaw) ->
-    {Statement, RowTamplate} = emqx_template_sql:parse_prepstmt(
-        StatementRaw,
-        #{parameters => '?', strip_double_quote => true}
-    ),
-    {Statement, RowTamplate}.
-
-render_row(RowTemplate, Map) ->
-    {Row, _Errors} = emqx_template:render(
-        RowTemplate,
-        Map,
-        #{var_trans => fun(_Name, Value) -> emqx_utils_sql:to_sql_value(Value) end}
-    ),
-    Row.
-
 make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement} = RawConfig0) ->
     RawMysqlConfig0 = maps:with(
         [
@@ -384,6 +394,35 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
 
 sync_query(Sql, Params) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params, ?TIMEOUT}).
+
+%% Render helpers
+
+parse_statements(Keys, BinMap) ->
+    lists:foldl(
+        fun(Key, StatementsAcc) ->
+            BinKey = atom_to_binary(Key, utf8),
+            StatementRaw = maps:get(BinKey, BinMap),
+            Parsed = parse_statement(StatementRaw),
+            StatementsAcc#{Key => Parsed}
+        end,
+        #{},
+        Keys
+    ).
+
+parse_statement(StatementRaw) ->
+    {Statement, RowTamplate} = emqx_template_sql:parse_prepstmt(
+        StatementRaw,
+        #{parameters => '?', strip_double_quote => true}
+    ),
+    {Statement, RowTamplate}.
+
+render_row(RowTemplate, Map) ->
+    {Row, _Errors} = emqx_template:render(
+        RowTemplate,
+        Map,
+        #{var_trans => fun(_Name, Value) -> emqx_utils_sql:to_sql_value(Value) end}
+    ),
+    Row.
 
 %% Hook helpers
 
