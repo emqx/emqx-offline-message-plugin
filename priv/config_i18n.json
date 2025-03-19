@@ -15,6 +15,14 @@
         "en": "Topic filters for topics to persist, separated by commas",
         "zh": "要持久化的主题过滤器，用逗号分隔"
     },
+    "$mysql_init_default_schema_label": {
+        "en": "Initialize Default Schema",
+        "zh": "初始化默认架构"
+    },
+    "$mysql_init_default_schema_desc": {
+        "en": "Initialize the default schema for the database",
+        "zh": "初始化数据库的默认架构"
+    },
     "$mysql_insert_message_sql_label": {
         "en": "MySQL Insert Message SQL",
         "zh": "MySQL 插入消息 SQL"

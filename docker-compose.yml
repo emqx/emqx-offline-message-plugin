@@ -39,8 +39,6 @@ services:
       MYSQL_PASSWORD: public
     ports:
       - "3306:3306"
-    volumes:
-      - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     networks:
       - emqx_network
     healthcheck:
@@ -68,7 +66,6 @@ services:
       - "3307:3306"
     volumes:
       - ./test/assets/certs:/certs:ro
-      - ./docker/mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     networks:
       - emqx_network
     healthcheck:

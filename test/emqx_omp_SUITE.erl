@@ -291,6 +291,7 @@ plugin_config() ->
             username => <<"emqx">>,
             pool_size => 8,
             database => <<"emqx">>,
+            init_default_schema => true,
             select_message_sql => <<"select * from mqtt_msg where topic = ${topic}">>,
             delete_message_sql => <<"delete from mqtt_msg where msgid = ${id}">>,
             insert_message_sql => <<

@@ -14,6 +14,7 @@ mysql {
     username = "emqx"
     password = "public"
     database = "emqx"
+    init_default_schema = false
     insert_message_sql = "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived) values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))"
     delete_message_sql = "delete from mqtt_msg where msgid = ${id}"
     select_message_sql = "select * from mqtt_msg where topic = ${topic}"

@@ -20,6 +20,17 @@
             }
           },
           {
+            "name": "init_default_schema",
+            "type": "boolean",
+            "default": false,
+            "$ui": {
+              "component": "switch",
+              "required": true,
+              "label": "$mysql_init_default_schema_label",
+              "description": "$mysql_init_default_schema_desc"
+            }
+          },
+          {
             "name": "insert_message_sql",
             "type": "string",
             "default": "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived) values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))",

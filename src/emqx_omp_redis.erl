@@ -252,7 +252,7 @@ on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters}
                     [<<"EXPIRE">>, msg_table(Context, MsgIDb62), TTL],
                     [<<"ZREMRANGEBYSCORE">>, msg_table(Context, Topic), 2, Now]
                 ],
-                case emqx_resource:query(?RESOURCE_ID, {cmds, Cmds}) of
+                case sync_cmds(Cmds) of
                     {ok, _} ->
                         ok;
                     {error, Reason} ->
@@ -276,7 +276,7 @@ on_message_acked(
         [<<"DEL">>, msg_table(Context, MsgIDb62)],
         [<<"ZREM">>, msg_table(Context, Topic), MsgIDb62]
     ],
-    case emqx_resource:simple_sync_query(?RESOURCE_ID, {cmds, Cmds}) of
+    case sync_cmds(Cmds) of
         {ok, _} ->
             emqx_metrics_worker:inc(?METRICS_WORKER, message_acked, success);
         {error, Reason} ->
