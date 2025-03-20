@@ -27,7 +27,8 @@
               "component": "switch",
               "required": true,
               "label": "$mysql_init_default_schema_label",
-              "description": "$mysql_init_default_schema_desc"
+              "description": "$mysql_init_default_schema_desc",
+              "importance": "low"
             }
           },
           {
@@ -38,7 +39,8 @@
               "component": "input-textarea",
               "required": true,
               "label": "$mysql_insert_message_sql_label",
-              "description": "$mysql_insert_message_sql_desc"
+              "description": "$mysql_insert_message_sql_desc",
+              "importance": "low"
             }
           },
           {
@@ -49,7 +51,8 @@
               "component": "input-textarea",
               "required": true,
               "label": "$mysql_delete_message_sql_label",
-              "description": "$mysql_delete_message_sql_desc"
+              "description": "$mysql_delete_message_sql_desc",
+              "importance": "low"
             }
           },
           {
@@ -60,7 +63,8 @@
               "component": "input-textarea",
               "required": true,
               "label": "$mysql_select_message_sql_label",
-              "description": "$mysql_select_message_sql_desc"
+              "description": "$mysql_select_message_sql_desc",
+              "importance": "low"
             }
           },
           {
@@ -71,7 +75,8 @@
               "component": "input-textarea",
               "required": true,
               "label": "$mysql_insert_subscription_sql_label",
-              "description": "$mysql_insert_subscription_sql_desc"
+              "description": "$mysql_insert_subscription_sql_desc",
+              "importance": "low"
             }
           },
           {
@@ -82,7 +87,8 @@
               "component": "input-textarea",
               "required": true,
               "label": "$mysql_select_subscriptions_sql_label",
-              "description": "$mysql_select_subscriptions_sql_desc"
+              "description": "$mysql_select_subscriptions_sql_desc",
+              "importance": "low"
             }
           },
           {
@@ -115,7 +121,8 @@
               "component": "input-number",
               "required": true,
               "label": "$mysql_pool_size_label",
-              "description": "$mysql_pool_size_desc"
+              "description": "$mysql_pool_size_desc",
+              "importance": "low"
             }
           },
           {
@@ -173,7 +180,8 @@
               "component": "input-number",
               "required": true,
               "label": "$mysql_batch_time_label",
-              "description": "$mysql_batch_time_desc"
+              "description": "$mysql_batch_time_desc",
+              "importance": "low"
             }
           },
           {
@@ -189,7 +197,8 @@
                 { "label": "Sync", "value": "sync" },
                 { "label": "Async", "value": "async" }
               ]
-            }
+            },
+            "importance": "low"
           },
           {
             "name": "ssl",
@@ -356,7 +365,8 @@
               "component": "input-number",
               "required": true,
               "label": "$redis_pool_size_label",
-              "description": "$redis_pool_size_desc"
+              "description": "$redis_pool_size_desc",
+              "importance": "low"
             }
           },
           {
@@ -389,7 +399,8 @@
               "component": "input",
               "required": true,
               "label": "$redis_message_key_prefix_label",
-              "description": "$redis_message_key_prefix_desc"
+              "description": "$redis_message_key_prefix_desc",
+              "importance": "low"
             }
           },
           {
@@ -400,7 +411,8 @@
               "component": "input",
               "required": true,
               "label": "$redis_subscription_key_prefix_label",
-              "description": "$redis_subscription_key_prefix_desc"
+              "description": "$redis_subscription_key_prefix_desc",
+              "importance": "low"
             }
           },
           {
@@ -433,7 +445,8 @@
               "component": "input-number",
               "required": true,
               "label": "$redis_batch_time_label",
-              "description": "$redis_batch_time_desc"
+              "description": "$redis_batch_time_desc",
+              "importance": "low"
             }
           },
           {
@@ -448,7 +461,8 @@
               "options": [
                 { "label": "Sync", "value": "sync" },
                 { "label": "Async", "value": "async" }
-              ]
+              ],
+              "importance": "low"
             }
           },
           {

@@ -4,7 +4,8 @@
 
 -module(emqx_omp_redis_connector).
 
--behaviour(emqx_resource).
+%% The plugin is compiled separately from EMQX, so the behaviour cannot be found.
+%% -behaviour(emqx_resource).
 
 %% callbacks of behaviour emqx_resource
 -export([
