@@ -50,7 +50,7 @@ init_per_suite(Config) ->
     [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
 
 end_per_suite(_Config) ->
-    % ok = emqx_omp_test_api_helpers:delete_all_plugins(),
+    ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
     ok.
 

@@ -21,11 +21,9 @@
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_omp_sup:start_link(),
-    ok = emqx_omp:load(),
     {ok, Sup}.
 
 stop(_State) ->
-    ok = emqx_omp:unload(),
     ok.
 
 on_config_changed(OldConf, NewConf) ->

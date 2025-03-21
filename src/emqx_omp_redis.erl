@@ -265,7 +265,7 @@ on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters}
     {ok, Message}.
 
 on_message_acked(
-    _ClientInfo = #{clientid := ClientId},
+    _ClientInfo,
     #message{id = MsgId} = Message,
     Context
 ) ->

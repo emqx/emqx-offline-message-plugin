@@ -16,5 +16,13 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
-    ChildSpec = emqx_metrics_worker:child_spec(?METRICS_WORKER),
-    {ok, {{one_for_all, 0, 1}, [ChildSpec]}}.
+    ChildSpecs = [
+        emqx_metrics_worker:child_spec(?METRICS_WORKER),
+        emqx_omp:child_spec()
+    ],
+    SupFlags = #{
+        strategy => one_for_all,
+        intensity => 10,
+        period => 10
+    },
+    {ok, {SupFlags, ChildSpecs}}.
