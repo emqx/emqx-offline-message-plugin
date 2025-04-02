@@ -17,6 +17,7 @@
     find_plugin/0,
     upload_plugin/1,
     list_plugins/0,
+    get_plugin/1,
     start_plugin/1,
     stop_plugin/1,
     delete_plugin/1,
@@ -102,6 +103,14 @@ list_plugins() ->
     case emqx_omp_test_helpers:api_get(plugins) of
         {ok, Plugins} when is_list(Plugins) ->
             Plugins;
+        {error, Error} ->
+            error(Error)
+    end.
+
+get_plugin(PluginId) ->
+    case emqx_omp_test_helpers:api_get({plugins, PluginId}) of
+        {ok, Plugin} ->
+            Plugin;
         {error, Error} ->
             error(Error)
     end.

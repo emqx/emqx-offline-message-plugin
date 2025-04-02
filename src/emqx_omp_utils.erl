@@ -13,7 +13,8 @@
     deliver_messages/2,
     induce_subscriptions/1,
     need_persist_message/2,
-    topic_filters/1
+    topic_filters/1,
+    resource_health_status/2
 ]).
 
 fix_ssl_config(#{<<"ssl">> := SslConfig0} = RawConfig) ->
@@ -90,3 +91,13 @@ is_message_qos_nonzero(Message) ->
 does_message_topic_match(Message, TopicFilters) ->
     Topic = emqx_message:topic(Message),
     lists:any(fun(Filter) -> emqx_topic:match(Topic, Filter) end, TopicFilters).
+
+resource_health_status(Name, ResourceId) ->
+    case emqx_resource:health_check(ResourceId) of
+        {ok, connected} ->
+            ok;
+        {ok, OtherStatus} ->
+            {error, iolist_to_binary(io_lib:format("Resource ~s is not connected, status: ~p", [Name, OtherStatus]))};
+        {error, Reason} ->
+            {error, iolist_to_binary(io_lib:format("Resource ~s health check failed: ~p", [Name, Reason]))}
+    end.

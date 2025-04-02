@@ -33,7 +33,9 @@ groups() ->
         [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
         [sync, async],
         [buffered, unbuffered],
-        emqx_omp_test_helpers:all(?MODULE)
+        %% TODO: restore t_health_check when 5.9.0 image is released
+        %% and used in the Docker Compose file
+        emqx_omp_test_helpers:all(?MODULE) -- [t_health_check]
     ]).
 
 init_per_suite(Config) ->
@@ -41,6 +43,7 @@ init_per_suite(Config) ->
 
     %% clean up
     ok = emqx_omp_test_api_helpers:delete_all_plugins(),
+    ok = emqx_omp_test_helpers:allow_plugin_install(),
 
     %% install plugin
     {PluginId, Filename} = emqx_omp_test_api_helpers:find_plugin(),
@@ -210,6 +213,25 @@ t_subscribition_persistence(_Config) ->
     %% Cleanup
     ok = emqtt:stop(ClientPub),
     ok = emqtt:stop(ClientSub2).
+
+t_health_check(Config) ->
+    PluginId = ?config(plugin_id, Config),
+    ?assertMatch(
+        #{
+            <<"running_status">> :=
+                [#{<<"health_status">> := #{<<"status">> := <<"ok">>}}]
+        },
+        emqx_omp_test_api_helpers:get_plugin(PluginId)
+    ),
+    Config0 = ?config(plugin_config, Config),
+    Config1 = emqx_utils_maps:deep_put([mysql, server], Config0, <<"bad-host:3306">>),
+    Config2 = emqx_utils_maps:deep_put([redis, servers], Config1, <<"bad-host:6379">>),
+    ok = emqx_omp_test_api_helpers:configure_plugin(PluginId, Config2),
+    ?assertMatch(
+        #{<<"running_status">> := [#{<<"health_status">> := #{<<"status">> := <<"error">>}}]},
+        emqx_omp_test_api_helpers:get_plugin(PluginId)
+    ),
+    ok.
 
 t_message_order(_Config) ->
     Topic = unique_topic(),

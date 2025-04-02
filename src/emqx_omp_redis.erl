@@ -11,7 +11,8 @@
 -include("emqx_omp.hrl").
 
 -export([
-    on_config_changed/2
+    on_config_changed/2,
+    on_health_check/1
 ]).
 
 -export([
@@ -48,6 +49,12 @@ on_config_changed(#{<<"enable">> := true} = _OldConf, #{<<"enable">> := false} =
     ok = stop();
 on_config_changed(#{<<"enable">> := false} = _OldConf, #{<<"enable">> := true} = NewConf) ->
     ok = start(NewConf).
+
+-spec on_health_check(map()) -> ok | {error, binary()}.
+on_health_check(#{<<"enable">> := false}) ->
+    ok;
+on_health_check(#{<<"enable">> := true}) ->
+    emqx_omp_utils:resource_health_status(<<"Redis">>, ?RESOURCE_ID).
 
 %%--------------------------------------------------------------------
 %% start/stop

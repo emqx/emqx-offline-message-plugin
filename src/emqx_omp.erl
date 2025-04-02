@@ -19,7 +19,8 @@
 
 %% Plugin callbacks
 -export([
-    on_config_changed/2
+    on_config_changed/2,
+    on_health_check/0
 ]).
 
 %% gen_server callbacks
@@ -39,10 +40,13 @@
 %%--------------------------------------------------------------------
 
 -record(state, {}).
+
 -record(on_config_changed, {
     old_conf :: map(),
     new_conf :: map()
 }).
+
+-record(on_health_check, {}).
 
 %%--------------------------------------------------------------------
 %% API
@@ -68,7 +72,20 @@ child_spec() ->
 %%--------------------------------------------------------------------
 
 on_config_changed(OldConf, NewConf) ->
-    gen_server:call(?SERVER, #on_config_changed{old_conf = OldConf, new_conf = NewConf}, ?TIMEOUT).
+    try
+        gen_server:call(?SERVER, #on_config_changed{old_conf = OldConf, new_conf = NewConf}, ?TIMEOUT)
+    catch
+        exit:{noproc, _} ->
+            ok
+    end.
+
+on_health_check() ->
+    try
+        gen_server:call(?SERVER, #on_health_check{}, ?TIMEOUT)
+    catch
+        exit:{noproc, _} ->
+            {error, <<"Plugin is not running">>}
+    end.
 
 %%--------------------------------------------------------------------
 %% gen_server callbacks
@@ -83,6 +100,8 @@ init([]) ->
 
 handle_call(#on_config_changed{old_conf = OldConf, new_conf = NewConf}, _From, State) ->
     {reply, handle_on_config_changed(OldConf, NewConf), State};
+handle_call(#on_health_check{}, _From, State) ->
+    {reply, handle_on_health_check(), State};
 handle_call(Request, From, State) ->
     ?SLOG(error, #{
         msg => "offline_message_plugin_unexpected_call", request => Request, from => From
@@ -125,9 +144,32 @@ handle_on_config_changed(OldConf, NewConf) ->
     ok = emqx_omp_redis:on_config_changed(OldRedisConf, NewRedisConf),
     ok.
 
+handle_on_health_check() ->
+    Config = current_config(),
+    MysqlConf = maps:get(<<"mysql">>, Config, #{}),
+    RedisConf = maps:get(<<"redis">>, Config, #{}),
+    MysqlStatus = emqx_omp_mysql:on_health_check(MysqlConf),
+    RedisStatus = emqx_omp_redis:on_health_check(RedisConf),
+    Errors = status_to_error_list(MysqlStatus) ++ status_to_error_list(RedisStatus),
+    case Errors of
+        [] ->
+            ok;
+        Errors ->
+            {error, iolist_to_binary(lists:join(",", Errors))}
+    end.
+
+status_to_error_list(ok) -> [];
+status_to_error_list({error, Error}) -> [Error].
+
 current_config() ->
-    {ok, Config} = emqx_plugins:get_config(?PLUGIN_NAME_VSN),
-    Config.
+    case emqx_plugins:get_config(?PLUGIN_NAME_VSN) of
+        %% Pre 5.9.0
+        {ok, Config} when is_map(Config) ->
+            Config;
+        %% 5.9.0 and later
+        Config when is_map(Config) ->
+            Config
+    end.
 
 init_metrics() ->
     ?SLOG(info, #{msg => "omp_init_metrics"}),

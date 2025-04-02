@@ -17,7 +17,10 @@
 ]).
 
 %% EMQX Plugin callbacks
--export([on_config_changed/2]).
+-export([
+    on_config_changed/2,
+    on_health_check/1
+]).
 
 start(_StartType, _StartArgs) ->
     {ok, Sup} = emqx_omp_sup:start_link(),
@@ -28,3 +31,6 @@ stop(_State) ->
 
 on_config_changed(OldConf, NewConf) ->
     emqx_omp:on_config_changed(OldConf, NewConf).
+
+on_health_check(_Options) ->
+    emqx_omp:on_health_check().

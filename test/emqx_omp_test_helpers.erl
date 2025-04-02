@@ -7,6 +7,8 @@
 -compile(nowarn_export_all).
 -compile(export_all).
 
+-include("emqx_omp.hrl").
+
 all(Suite) ->
     lists:usort([
         F
@@ -31,6 +33,13 @@ start() ->
     ok.
 
 stop() ->
+    ok.
+
+allow_plugin_install() ->
+    Command = "docker compose exec emqx /opt/emqx/bin/emqx ctl plugins allow " ++ binary_to_list(?PLUGIN_NAME_VSN),
+    ct:print("Command: ~s~n", [Command]),
+    os:cmd(Command),
+    timer:sleep(1000),
     ok.
 
 api_get(Path) ->
@@ -94,7 +103,9 @@ handle_result({error, Reason}) ->
 
 handle_result_raw({ok, Code, _Headers, ClientRef}) when Code >= 200 andalso Code < 300 ->
     hackney:body(ClientRef);
-handle_result_raw({ok, Code, _Headers, _Body}) ->
+handle_result_raw({ok, Code, _Headers, ClientRef}) ->
+    {ok, Body} = hackney:body(ClientRef),
+    ct:pal("Response body:~n~s~n", [Body]),
     {error, {http_status, Code}};
 handle_result_raw({error, Reason}) ->
     {error, Reason}.
