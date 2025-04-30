@@ -1,6 +1,7 @@
 {application, emqx_offline_message_plugin, [
     {description, "EMQX Offline Message Plugin"},
-    {vsn, "0.1.0"},
+    %% Do not update version manually, use make bump-version-patch/minor/major instead
+    {vsn, "1.0.0"},
     {modules, []},
     {registered, [emqx_omp_sup]},
     {applications, [kernel, stdlib]},

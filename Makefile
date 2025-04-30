@@ -89,7 +89,8 @@ up:
 down:
 	docker compose down --volumes
 
-
-
-
+# bump-version-patch/minor/major
+.PHONY: bump-version-%
+bump-version-%:
+	./scripts/bumpversion.sh $*
 
