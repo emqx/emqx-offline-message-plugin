@@ -1,3 +1,5 @@
+[![CI](https://github.com/emqx/emqx-offline-message-plugin/actions/workflows/ci.yml/badge.svg)](https://github.com/emqx/emqx-offline-message-plugin/actions/workflows/ci.yml)
+
 # EMQX Offline Message Plugin
 
 ## Usage
