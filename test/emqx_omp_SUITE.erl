@@ -350,7 +350,7 @@ set_server(redis_ssl, Config) ->
     emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>).
 
 unique_id() ->
-    <<(emqx_guid:to_hexstr(emqx_guid:gen()))/binary>>.
+    binary:encode_hex(crypto:strong_rand_bytes(16)).
 
 unique_topic() ->
     <<"t/", (unique_id())/binary>>.

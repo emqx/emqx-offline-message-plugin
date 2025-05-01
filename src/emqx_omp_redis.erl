@@ -4,9 +4,9 @@
 
 -module(emqx_omp_redis).
 
--include_lib("emqx/include/emqx.hrl").
--include_lib("emqx/include/logger.hrl").
--include_lib("emqx/include/emqx_hooks.hrl").
+-include_lib("emqx_plugin_helper/include/emqx.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/emqx_hooks.hrl").
 
 -include("emqx_omp.hrl").
 

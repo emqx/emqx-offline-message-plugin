@@ -4,7 +4,7 @@
 
 -module(emqx_omp_utils).
 
--include_lib("emqx/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
 
 -export([
     fix_ssl_config/1,
@@ -97,7 +97,13 @@ resource_health_status(Name, ResourceId) ->
         {ok, connected} ->
             ok;
         {ok, OtherStatus} ->
-            {error, iolist_to_binary(io_lib:format("Resource ~s is not connected, status: ~p", [Name, OtherStatus]))};
+            {error,
+                iolist_to_binary(
+                    io_lib:format("Resource ~s is not connected, status: ~p", [Name, OtherStatus])
+                )};
         {error, Reason} ->
-            {error, iolist_to_binary(io_lib:format("Resource ~s health check failed: ~p", [Name, Reason]))}
+            {error,
+                iolist_to_binary(
+                    io_lib:format("Resource ~s health check failed: ~p", [Name, Reason])
+                )}
     end.

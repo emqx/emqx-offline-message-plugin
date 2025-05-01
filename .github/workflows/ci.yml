@@ -20,8 +20,11 @@ jobs:
     - name: Setup Erlang
       uses: erlef/setup-beam@v1
       with:
-        otp-version: "26"
+        otp-version: "27"
         rebar3-version: "3"
+
+    - name: Check format
+      run: make fmt-check
 
     - name: Start Dependencies
       run: make up
@@ -49,7 +52,7 @@ jobs:
     - name: Setup Erlang
       uses: erlef/setup-beam@v1
       with:
-        otp-version: "26"
+        otp-version: "27"
         rebar3-version: "3"
 
     - name: Build Release

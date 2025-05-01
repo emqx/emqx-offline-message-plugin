@@ -4,9 +4,9 @@
 
 -module(emqx_omp_mysql).
 
--include_lib("emqx/include/emqx.hrl").
--include_lib("emqx/include/logger.hrl").
--include_lib("emqx/include/emqx_hooks.hrl").
+-include_lib("emqx_plugin_helper/include/emqx.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/emqx_hooks.hrl").
 
 -include("emqx_omp.hrl").
 
@@ -29,7 +29,8 @@
 -define(TIMEOUT, 1000).
 
 -define(INIT_SQL, [
-    <<"CREATE TABLE IF NOT EXISTS `mqtt_msg` ("
+    <<
+        "CREATE TABLE IF NOT EXISTS `mqtt_msg` ("
         "`id` bigint unsigned NOT NULL AUTO_INCREMENT,"
         "`msgid` varchar(64) DEFAULT NULL,"
         "`topic` varchar(180) NOT NULL,"
@@ -40,15 +41,18 @@
         "`arrived` datetime NOT NULL,"
         "PRIMARY KEY (`id`),"
         "INDEX topic_index(`topic`)"
-    ")"
-    "ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;">>,
+        ")"
+        "ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;"
+    >>,
 
-    <<"CREATE TABLE IF NOT EXISTS `mqtt_sub` ("
+    <<
+        "CREATE TABLE IF NOT EXISTS `mqtt_sub` ("
         "`clientid` varchar(64) NOT NULL,"
         "`topic` varchar(180) NOT NULL,"
         "`qos` tinyint(1) NOT NULL DEFAULT '0',"
         "PRIMARY KEY (`clientid`, `topic`)"
-    ") ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;">>
+        ") ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;"
+    >>
 ]).
 
 -type statement() :: emqx_template_sql:statement().
@@ -99,7 +103,6 @@ start(ConfigRaw) ->
     ok = init_default_schema(ConfigRaw),
     {MysqlConfig, ResourceOpts} = make_mysql_resource_config(ConfigRaw),
     ok = start_resource(MysqlConfig, ResourceOpts),
-
 
     Statements = parse_statements(
         [delete_message_sql, select_message_sql, insert_subscription_sql, select_subscriptions_sql],
@@ -410,18 +413,21 @@ init_default_schema(ConfigRaw) ->
         MysqlConfig,
         ResourceOpts
     ),
-    ok = lists:foreach(fun(Sql) ->
-        case emqx_resource:simple_sync_query(?RESOURCE_ID_INIT, {sql, Sql, [], ?TIMEOUT}) of
-            {error, Reason} ->
-                ?SLOG(error, #{
-                    msg => "omp_mysql_init_default_schema_error",
-                    sql => Sql,
-                    reason => Reason
-                });
-            _ ->
-                ok
-        end
-    end, ?INIT_SQL),
+    ok = lists:foreach(
+        fun(Sql) ->
+            case emqx_resource:simple_sync_query(?RESOURCE_ID_INIT, {sql, Sql, [], ?TIMEOUT}) of
+                {error, Reason} ->
+                    ?SLOG(error, #{
+                        msg => "omp_mysql_init_default_schema_error",
+                        sql => Sql,
+                        reason => Reason
+                    });
+                _ ->
+                    ok
+            end
+        end,
+        ?INIT_SQL
+    ),
     ok = emqx_resource:remove_local(?RESOURCE_ID_INIT).
 
 sync_query(Sql, Params) ->

@@ -1,7 +1,5 @@
+## to build emqtt without QUIC
 export BUILD_WITHOUT_QUIC = 1
-export PROFILE = emqx
-## shallow clone for speed
-export REBAR_GIT_CLONE_OPTIONS += --depth=1
 
 ## Feature Used in rebar plugin emqx_plugrel
 ## The Feature have not enabled by default on OTP25
@@ -39,10 +37,6 @@ ct: $(REBAR) rel copy-plugin
 eunit: $(REBAR)
 	$(REBAR) as test eunit
 
-.PHONY: xref
-xref: $(REBAR)
-	$(REBAR) xref
-
 .PHONY: cover
 cover: $(REBAR)
 	$(REBAR) cover
@@ -69,17 +63,11 @@ copy-plugin:
 
 .PHONY: fmt
 fmt: $(REBAR)
-	@find . \( -name '*.app.src' -o \
-				-name '*.erl' -o \
-				-name '*.hrl' -o \
-				-name 'rebar.config' -o \
-				-name '*.eterm' -o \
-				-name '*.escript' \) \
-				-not -path '*/_build/*' \
-				-not -path '*/deps/*' \
-				-not -path '*/_checkouts/*' \
-				-type f \
-		| xargs | $(REBAR) fmt --verbose -w
+	$(REBAR) fmt --verbose -w
+
+.PHONY: fmt-check
+fmt-check: $(REBAR)
+	$(REBAR) fmt --verbose --check
 
 .PHONY: up
 up:
