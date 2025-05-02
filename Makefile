@@ -48,7 +48,7 @@ clean:
 .PHONY: distclean
 distclean: clean
 	@rm -rf _build
-	@rm -f data/app.*.config data/vm.*.args rebar.lock
+	@rm -f rebar.lock
 
 .PHONY: rel
 rel: $(REBAR)

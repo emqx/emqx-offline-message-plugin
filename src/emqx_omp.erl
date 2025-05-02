@@ -164,7 +164,7 @@ status_to_error_list(ok) -> [];
 status_to_error_list({error, Error}) -> [Error].
 
 current_config() ->
-    emqx_plugin_helper:get_config(?PLUGIN_NAME).
+    emqx_plugin_helper:get_config(?PLUGIN_NAME_VSN).
 
 init_metrics() ->
     ?SLOG(info, #{msg => "omp_init_metrics"}),

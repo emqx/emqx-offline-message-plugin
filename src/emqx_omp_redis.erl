@@ -433,7 +433,7 @@ stop_resource() ->
         msg => omp_redis_resource_stop,
         resource_id => ?RESOURCE_ID
     }),
-    emqx_resource:remove_local(?RESOURCE_ID).
+    ok = emqx_resource:remove_local(?RESOURCE_ID).
 
 sync_cmd(Cmd) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {cmd, Cmd}).
