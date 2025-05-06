@@ -4,7 +4,7 @@
 
 -module(emqx_offline_message_plugin_app).
 
--include_lib("emqx/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
 
 -behaviour(application).
 

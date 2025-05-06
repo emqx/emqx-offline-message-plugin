@@ -227,4 +227,4 @@ delete_all_actions() ->
 %%--------------------------------------------------------------------
 
 asset_path() ->
-    filename:join([code:lib_dir(emqx_offline_message_plugin, test), "assets"]).
+    filename:join([code:lib_dir(emqx_offline_message_plugin), "test", "assets"]).

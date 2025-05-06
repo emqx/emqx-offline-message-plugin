@@ -1,8 +1,6 @@
 services:
   emqx:
-    image: emqx/emqx-enterprise:5.8.5
-    # TODO: uncomment when 5.9.0 image is released
-    # image: docker.io/emqx/emqx-enterprise:5.9.0
+    image: emqx/emqx-enterprise:5.9.0
     container_name: emqx
     environment:
       EMQX_LOG__CONSOLE__LEVEL: debug

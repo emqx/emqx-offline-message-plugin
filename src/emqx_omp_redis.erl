@@ -4,9 +4,9 @@
 
 -module(emqx_omp_redis).
 
--include_lib("emqx/include/emqx.hrl").
--include_lib("emqx/include/logger.hrl").
--include_lib("emqx/include/emqx_hooks.hrl").
+-include_lib("emqx_plugin_helper/include/emqx.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/emqx_hooks.hrl").
 
 -include("emqx_omp.hrl").
 
@@ -433,7 +433,7 @@ stop_resource() ->
         msg => omp_redis_resource_stop,
         resource_id => ?RESOURCE_ID
     }),
-    emqx_resource:remove_local(?RESOURCE_ID).
+    ok = emqx_resource:remove_local(?RESOURCE_ID).
 
 sync_cmd(Cmd) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {cmd, Cmd}).

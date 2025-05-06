@@ -5,8 +5,8 @@
 -module(emqx_omp).
 
 -include("emqx_omp.hrl").
--include_lib("emqx/include/emqx.hrl").
--include_lib("emqx/include/logger.hrl").
+-include_lib("emqx_plugin_helper/include/emqx.hrl").
+-include_lib("emqx_plugin_helper/include/logger.hrl").
 
 -behaviour(gen_server).
 
@@ -73,7 +73,9 @@ child_spec() ->
 
 on_config_changed(OldConf, NewConf) ->
     try
-        gen_server:call(?SERVER, #on_config_changed{old_conf = OldConf, new_conf = NewConf}, ?TIMEOUT)
+        gen_server:call(
+            ?SERVER, #on_config_changed{old_conf = OldConf, new_conf = NewConf}, ?TIMEOUT
+        )
     catch
         exit:{noproc, _} ->
             ok
@@ -162,14 +164,7 @@ status_to_error_list(ok) -> [];
 status_to_error_list({error, Error}) -> [Error].
 
 current_config() ->
-    case emqx_plugins:get_config(?PLUGIN_NAME_VSN) of
-        %% Pre 5.9.0
-        {ok, Config} when is_map(Config) ->
-            Config;
-        %% 5.9.0 and later
-        Config when is_map(Config) ->
-            Config
-    end.
+    emqx_plugin_helper:get_config(?PLUGIN_NAME_VSN).
 
 init_metrics() ->
     ?SLOG(info, #{msg => "omp_init_metrics"}),

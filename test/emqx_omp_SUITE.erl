@@ -33,9 +33,7 @@ groups() ->
         [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
         [sync, async],
         [buffered, unbuffered],
-        %% TODO: restore t_health_check when 5.9.0 image is released
-        %% and used in the Docker Compose file
-        emqx_omp_test_helpers:all(?MODULE) -- [t_health_check]
+        emqx_omp_test_helpers:all(?MODULE)
     ]).
 
 init_per_suite(Config) ->
@@ -350,7 +348,7 @@ set_server(redis_ssl, Config) ->
     emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>).
 
 unique_id() ->
-    <<(emqx_guid:to_hexstr(emqx_guid:gen()))/binary>>.
+    binary:encode_hex(crypto:strong_rand_bytes(16)).
 
 unique_topic() ->
     <<"t/", (unique_id())/binary>>.
