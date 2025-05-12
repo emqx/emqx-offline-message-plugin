@@ -22,18 +22,16 @@
 
 all() ->
     [
-        {group, mysql_tcp},
-        {group, mysql_ssl},
-        {group, redis_tcp},
-        {group, redis_ssl}
+        {group, generic}
     ].
 
 groups() ->
     emqx_omp_test_helpers:nested_groups([
+        [generic],
         [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
         [sync, async],
         [buffered, unbuffered],
-        emqx_omp_test_helpers:all(?MODULE)
+        [t_different_subscribers, t_subscribition_persistence, t_health_check, t_message_order]
     ]).
 
 init_per_suite(Config) ->
@@ -107,7 +105,12 @@ init_per_group(async, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
     PluginConfig = emqx_utils_maps:deep_put([Backend, query_mode], PluginConfig0, <<"async">>),
-    ?set_config(plugin_config, PluginConfig, Config).
+    ?set_config(plugin_config, PluginConfig, Config);
+%%
+%% Auxiliary groups
+%%
+init_per_group(generic, Config) ->
+    Config.
 
 end_per_group(_Group, _Config) ->
     ok.
@@ -255,14 +258,6 @@ t_message_order(_Config) ->
     %% Check messages order
     ?assertEqual(lists:seq(1, 200), Messages).
 
-receive_messages() ->
-    receive
-        {publish, #{payload := Payload}} ->
-            [binary_to_integer(Payload) | receive_messages()]
-    after 500 ->
-        []
-    end.
-
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
@@ -358,3 +353,11 @@ unique_clientid() ->
 
 unique_payload() ->
     <<"p/", (unique_id())/binary>>.
+
+receive_messages() ->
+    receive
+        {publish, #{payload := Payload}} ->
+            [binary_to_integer(Payload) | receive_messages()]
+    after 500 ->
+        []
+    end.

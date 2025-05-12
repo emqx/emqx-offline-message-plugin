@@ -403,7 +403,12 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
 
     {MysqlConfig, ResourceOpts}.
 
-init_default_schema(ConfigRaw) ->
+
+init_default_schema(#{<<"init_default_schema">> := true} = ConfigRaw) ->
+    ?SLOG(info, #{
+        msg => omp_mysql_init_default_schema,
+        config => ConfigRaw
+    }),
     {MysqlConfig0, ResourceOpts} = make_mysql_resource_config(ConfigRaw),
     MysqlConfig = MysqlConfig0#{prepare_statement => #{}},
     {ok, _} = emqx_resource:create_local(
@@ -428,7 +433,9 @@ init_default_schema(ConfigRaw) ->
         end,
         ?INIT_SQL
     ),
-    ok = emqx_resource:remove_local(?RESOURCE_ID_INIT).
+    ok = emqx_resource:remove_local(?RESOURCE_ID_INIT);
+init_default_schema(_ConfigRaw) ->
+    ok.
 
 sync_query(Sql, Params) ->
     emqx_resource:simple_sync_query(?RESOURCE_ID, {sql, Sql, Params, ?TIMEOUT}).
