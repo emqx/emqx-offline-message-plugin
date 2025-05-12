@@ -228,16 +228,30 @@ append_results([{error, Reason} | Results], Acc) ->
     }),
     append_results(Results, Acc).
 
-on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Env) ->
+on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, Context) ->
     ?SLOG(info, #{
         msg => omp_redis_session_unsubscribed,
         clientid => ClientId,
         topic => Topic,
         opts => Opts
     }),
-    ok.
+    ok = delete_subscription(ClientId, Topic, Context).
 
-on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Env) ->
+delete_subscription(ClientId, Topic, Context) ->
+    Cmd = [<<"HDEL">>, sub_table(Context, ClientId), Topic],
+    case sync_cmd(Cmd) of
+        {ok, _} ->
+            ok;
+        {error, Reason} ->
+            ?SLOG(error, #{
+                msg => "omp_redis_delete_subscription_error",
+                topic => Topic,
+                reason => Reason
+            }),
+            ok
+    end.
+
+on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Context) ->
     {ok, Message};
 on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters} = Context) ->
     _ =

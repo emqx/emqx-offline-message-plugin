@@ -22,7 +22,9 @@
 
 all() ->
     [
-        {group, generic}
+        {group, generic},
+        {group, mysql},
+        {group, redis}
     ].
 
 groups() ->
@@ -32,7 +34,11 @@ groups() ->
         [sync, async],
         [buffered, unbuffered],
         [t_different_subscribers, t_subscribition_persistence, t_health_check, t_message_order]
-    ]).
+    ]) ++
+        [
+            {mysql, [], [t_mysql_table_cleanup]},
+            {redis, [], [t_redis_table_cleanup]}
+        ].
 
 init_per_suite(Config) ->
     ok = emqx_omp_test_helpers:start(),
@@ -80,6 +86,10 @@ init_per_group(redis_ssl, Config) ->
     PluginConfig2 = emqx_utils_maps:deep_put([redis, ssl, enable], PluginConfig1, true),
     PluginConfig3 = set_server(redis_ssl, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
+init_per_group(mysql, Config) ->
+    init_per_group(mysql_tcp, Config);
+init_per_group(redis, Config) ->
+    init_per_group(redis_tcp, Config);
 %%
 %% buffered/unbuffered
 %%
@@ -258,6 +268,101 @@ t_message_order(_Config) ->
     %% Check messages order
     ?assertEqual(lists:seq(1, 200), Messages).
 
+t_mysql_table_cleanup(Config) ->
+    %% setup and cleanup
+    PluginConfig = ?config(plugin_config, Config),
+    {ok, Pid} = mysql_client(PluginConfig),
+    ok = mysql:query(Pid, <<"DELETE FROM mqtt_msg">>),
+    ok = mysql:query(Pid, <<"DELETE FROM mqtt_sub">>),
+
+    %% 1. Make a sub client, subscribe to a topic — this creates mqtt_sub row.
+    %% 2. Disconnect the client.
+    %% 3  Make a pub client, publish a message to the topic — this creates mqtt_msg row.
+    %% 4. Reconnect the sub client, it receives the message — this should clear mqtt_msg row.
+    %% 5. Unsubscribe sub client, this should clear mqtt_sub row.
+    %%
+    %% In the end, the tables should be empty.
+
+    %% 1. Make a sub client, subscribe to a topic
+    ClientId = unique_clientid(),
+    Topic = unique_topic(),
+    Payload = unique_payload(),
+    SubscriberOpts = [{clientid, ClientId}, {clean_start, true}],
+    ClientSub0 = emqtt_connect(SubscriberOpts),
+    _ = emqtt:subscribe(ClientSub0, Topic, 1),
+
+    %% 2. Disconnect the client.
+    ok = emqtt:stop(ClientSub0),
+
+    %% 3. Make a pub client, publish a message to the topic
+    ClientPub = emqtt_connect(),
+    _ = emqtt:publish(ClientPub, Topic, Payload, 1),
+    ct:sleep(500),
+
+    %% 4. Reconnect the sub client, it receives the message
+    ClientSub1 = emqtt_connect(SubscriberOpts),
+    receive
+        {publish, #{payload := Payload}} ->
+            ok
+    after 1000 ->
+        ct:fail("Message not received")
+    end,
+
+    %% 5. Unsubscribe sub client.
+    {ok, _, _} = emqtt:unsubscribe(ClientSub1, Topic),
+    ok = emqtt:stop(ClientSub1),
+
+    %% Check that the tables are empty.
+    ?assertEqual([#{<<"COUNT(*)">> => 0}], mysql_query(Pid, <<"SELECT COUNT(*) FROM mqtt_msg">>)),
+    ?assertEqual([#{<<"COUNT(*)">> => 0}], mysql_query(Pid, <<"SELECT COUNT(*) FROM mqtt_sub">>)).
+
+t_redis_table_cleanup(Config) ->
+    %% setup and cleanup
+    PluginConfig = ?config(plugin_config, Config),
+    {ok, Pid} = redis_client(PluginConfig),
+    {ok, <<"OK">>} = eredis:q(Pid, [<<"FLUSHALL">>]),
+
+    %% 1. Make a sub client, subscribe to a topic — this creates mqtt_sub row.
+    %% 2. Disconnect the client.
+    %% 3  Make a pub client, publish a message to the topic — this creates mqtt_msg row.
+    %% 4. Reconnect the sub client, it receives the message — this should clear mqtt_msg row.
+    %% 5. Unsubscribe sub client, this should clear mqtt_sub row.
+    %%
+    %% In the end, the tables should be empty.
+
+    %% 1. Make a sub client, subscribe to a topic
+    ClientId = unique_clientid(),
+    Topic = unique_topic(),
+    Payload = unique_payload(),
+    SubscriberOpts = [{clientid, ClientId}, {clean_start, true}],
+    ClientSub0 = emqtt_connect(SubscriberOpts),
+    _ = emqtt:subscribe(ClientSub0, Topic, 1),
+
+    %% 2. Disconnect the client.
+    ok = emqtt:stop(ClientSub0),
+
+    %% 3. Make a pub client, publish a message to the topic
+    ClientPub = emqtt_connect(),
+    _ = emqtt:publish(ClientPub, Topic, Payload, 1),
+    ct:sleep(500),
+
+    %% 4. Reconnect the sub client, it receives the message
+    ClientSub1 = emqtt_connect(SubscriberOpts),
+    receive
+        {publish, #{payload := Payload}} ->
+            ok
+    after 1000 ->
+        ct:fail("Message not received")
+    end,
+
+    %% 5. Unsubscribe sub client.
+    {ok, _, _} = emqtt:unsubscribe(ClientSub1, Topic),
+    ok = emqtt:stop(ClientSub1),
+
+    %% Check that the tables are empty.
+    ?assertEqual({ok, []}, eredis:q(Pid, [<<"KEYS">>, <<"mqtt:msg:*">>])),
+    ?assertEqual({ok, []}, eredis:q(Pid, [<<"KEYS">>, <<"mqtt:sub:*">>])).
+
 %%--------------------------------------------------------------------
 %% Internal functions
 %%--------------------------------------------------------------------
@@ -321,6 +426,9 @@ plugin_config() ->
             select_subscriptions_sql => <<
                 "select topic, qos from mqtt_sub where clientid = ${clientid}"
             >>,
+            delete_subscription_sql => <<
+                "delete from mqtt_sub where clientid = ${clientid} and topic = ${topic}"
+            >>,
             batch_size => 1,
             batch_time => 50,
             query_mode => <<"sync">>
@@ -361,3 +469,45 @@ receive_messages() ->
     after 500 ->
         []
     end.
+
+mysql_client(#{
+    mysql := #{server := Server, password := Password, username := Username, database := Database}
+}) ->
+    [_Host, PortStr] = string:tokens(binary_to_list(Server), ":"),
+    Port = list_to_integer(PortStr),
+    Opts = [
+        {host, "127.0.0.1"},
+        {port, Port},
+        {user, binary_to_list(Username)},
+        {password, binary_to_list(Password)},
+        {database, binary_to_list(Database)}
+    ],
+    mysql:start_link(Opts).
+
+mysql_query(Pid, Query) ->
+    maybe
+        {ok, Header, Rows} ?= mysql:query(Pid, Query),
+        lists:map(
+            fun(Row) ->
+                maps:from_list(lists:zip(Header, Row))
+            end,
+            Rows
+        )
+    end.
+
+redis_client(#{
+    redis := #{
+        servers := Servers,
+        password := Password,
+        database := Database
+    }
+}) ->
+    [_Host, PortStr] = string:tokens(binary_to_list(Servers), ":"),
+    Port = list_to_integer(PortStr),
+    Opts = [
+        {host, "127.0.0.1"},
+        {port, Port},
+        {password, binary_to_list(Password)},
+        {database, Database}
+    ],
+    eredis:start_link(Opts).

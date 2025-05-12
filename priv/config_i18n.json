@@ -63,6 +63,14 @@
         "en": "SQL statement for retrieving subscriptions",
         "zh": "用于检索订阅的 SQL 语句"
     },
+    "$mysql_delete_subscription_sql_label": {
+        "en": "MySQL Delete Subscription SQL",
+        "zh": "MySQL 删除订阅 SQL"
+    },
+    "$mysql_delete_subscription_sql_desc": {
+        "en": "SQL statement for deleting subscriptions",
+        "zh": "用于删除订阅的 SQL 语句"
+    },
     "$mysql_server_label": {
         "en": "MySQL Server",
         "zh": "MySQL 服务器"

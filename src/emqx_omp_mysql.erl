@@ -62,7 +62,8 @@
     select_message_sql => {statement(), param_template()},
     delete_message_sql => {statement(), param_template()},
     insert_subscription_sql => {statement(), param_template()},
-    select_subscriptions_sql => {statement(), param_template()}
+    select_subscriptions_sql => {statement(), param_template()},
+    delete_subscription_sql => {statement(), param_template()}
 }.
 
 %%-------------------------------------------------------------------
@@ -105,7 +106,13 @@ start(ConfigRaw) ->
     ok = start_resource(MysqlConfig, ResourceOpts),
 
     Statements = parse_statements(
-        [delete_message_sql, select_message_sql, insert_subscription_sql, select_subscriptions_sql],
+        [
+            delete_message_sql,
+            select_message_sql,
+            insert_subscription_sql,
+            select_subscriptions_sql,
+            delete_subscription_sql
+        ],
         ConfigRaw
     ),
     TopicFilters = emqx_omp_utils:topic_filters(ConfigRaw),
@@ -204,14 +211,31 @@ fetch_and_deliver_messages(
         end,
     ok.
 
-on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, _Context) ->
+on_session_unsubscribed(#{clientid := ClientId}, Topic, Opts, Context) ->
     ?SLOG(info, #{
         msg => omp_mysql_session_unsubscribed,
         clientid => ClientId,
         topic => Topic,
         opts => Opts
     }),
-    ok.
+    ok = delete_subscription(ClientId, Topic, Context).
+
+delete_subscription(
+    ClientId,
+    Topic,
+    #{statements := #{delete_subscription_sql := {Sql, ParamTemplate}}} = _Context
+) ->
+    Params = render_row(ParamTemplate, #{clientid => ClientId, topic => Topic}),
+    case sync_query(Sql, Params) of
+        ok ->
+            ok;
+        {error, Reason} ->
+            ?SLOG(error, #{
+                msg => "omp_mysql_delete_subscription_error",
+                reason => Reason
+            }),
+            ok
+    end.
 
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Context) ->
     {ok, Message};
@@ -402,7 +426,6 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
     ResourceOpts = emqx_omp_utils:make_resource_opts(RawConfig0),
 
     {MysqlConfig, ResourceOpts}.
-
 
 init_default_schema(#{<<"init_default_schema">> := true} = ConfigRaw) ->
     ?SLOG(info, #{

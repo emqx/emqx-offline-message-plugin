@@ -92,6 +92,18 @@
             }
           },
           {
+            "name": "delete_subscription_sql",
+            "type": "string",
+            "default": "delete from mqtt_sub where clientid = ${clientid} and topic = ${topic}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_delete_subscription_sql_label",
+              "description": "$mysql_delete_subscription_sql_desc",
+              "importance": "low"
+            }
+          },
+          {
             "name": "server",
             "type": "string",
             "default": "127.0.0.1:3306",
