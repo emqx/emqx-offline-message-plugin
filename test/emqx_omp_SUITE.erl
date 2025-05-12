@@ -31,7 +31,6 @@ groups() ->
     emqx_omp_test_helpers:nested_groups([
         [generic],
         [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
-        [sync, async],
         [buffered, unbuffered],
         [t_different_subscribers, t_subscribition_persistence, t_health_check, t_message_order]
     ]) ++
@@ -102,19 +101,6 @@ init_per_group(unbuffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
     PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 1),
-    ?set_config(plugin_config, PluginConfig, Config);
-%%
-%% sync/async
-%%
-init_per_group(sync, Config) ->
-    PluginConfig0 = ?config(plugin_config, Config),
-    Backend = ?config(backend, Config),
-    PluginConfig = emqx_utils_maps:deep_put([Backend, query_mode], PluginConfig0, <<"sync">>),
-    ?set_config(plugin_config, PluginConfig, Config);
-init_per_group(async, Config) ->
-    PluginConfig0 = ?config(plugin_config, Config),
-    Backend = ?config(backend, Config),
-    PluginConfig = emqx_utils_maps:deep_put([Backend, query_mode], PluginConfig0, <<"async">>),
     ?set_config(plugin_config, PluginConfig, Config);
 %%
 %% Auxiliary groups
@@ -399,8 +385,7 @@ plugin_config() ->
             subscription_key_prefix => <<"mqtt:sub">>,
             message_ttl => 7200,
             batch_size => 1,
-            batch_time => 50,
-            query_mode => <<"sync">>
+            batch_time => 50
         },
         mysql => #{
             enable => false,
@@ -430,8 +415,7 @@ plugin_config() ->
                 "delete from mqtt_sub where clientid = ${clientid} and topic = ${topic}"
             >>,
             batch_size => 1,
-            batch_time => 50,
-            query_mode => <<"sync">>
+            batch_time => 50
         }
     }.
 

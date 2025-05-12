@@ -36,13 +36,17 @@ make_resource_opts(RawConfig) ->
         start_after_created => true,
         batch_size => maps:get(<<"batch_size">>, RawConfig, 1),
         batch_time => maps:get(<<"batch_time">>, RawConfig, 100),
-        query_mode => query_mode(maps:get(<<"query_mode">>, RawConfig, <<"sync">>))
+        %% NOTE
+        %% There seems to be no point in supporting async query mode
+        %% (althought it is supported in v4).
+        %%
+        %% If we use async, then we save messages with a delay, but a client
+        %% acks messages immediately. On ack, an offline message is removed but there is
+        %% nothing to remove yet.
+        %% After some time, the message will be persisted in the database, and the client
+        %% will receive it once more on reconnect.
+        query_mode => sync
     }.
-
-query_mode(<<"async">>) ->
-    async;
-query_mode(_) ->
-    sync.
 
 check_config(Schema, ConfigRaw) ->
     case

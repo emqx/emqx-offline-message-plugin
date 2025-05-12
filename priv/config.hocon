@@ -23,7 +23,6 @@ mysql {
     delete_subscription_sql = "delete from mqtt_sub where clientid = ${clientid} and topic = ${topic}"
     batch_size = 1
     batch_time = 100
-    query_mode = "sync"
 }
 
 redis {
@@ -48,7 +47,6 @@ redis {
     database = 0
     batch_size = 1
     batch_time = 100
-    query_mode = "sync"
 }
 
 
