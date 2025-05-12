@@ -9,11 +9,11 @@ mysql {
         keyfile = "/certs/mysql-client.key"
     }
     server = "mysql:3306"
-    topics = []
     pool_size = 8
     username = "emqx"
     password = "public"
     database = "emqx"
+    topics = []
     init_default_schema = false
     insert_message_sql = "insert into mqtt_msg(msgid, sender, topic, qos, retain, payload, arrived) values(${id}, ${from}, ${topic}, ${qos}, ${flags.retain}, ${payload}, FROM_UNIXTIME(${timestamp}/1000))"
     delete_message_sql = "delete from mqtt_msg where msgid = ${id}"
@@ -41,6 +41,7 @@ redis {
     pool_size = 8
     username = ""
     password = "public"
+    topics = []
     message_key_prefix = "mqtt:msg"
     subscription_key_prefix = "mqtt:sub"
     message_ttl = 7200
