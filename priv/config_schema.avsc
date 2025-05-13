@@ -329,6 +329,17 @@
             }
           },
           {
+            "name": "sentinel",
+            "type": "string",
+            "default": "",
+            "$ui": {
+              "component": "input",
+              "required": false,
+              "label": "$redis_sentinel_label",
+              "description": "$redis_sentinel_desc"
+            }
+          },
+          {
             "name": "database",
             "type": "int",
             "default": 0,

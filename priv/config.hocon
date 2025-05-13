@@ -37,6 +37,7 @@ redis {
     }
     servers = "redis:6379"
     redis_type = "single"
+    sentinel = ""
     pool_size = 8
     username = ""
     password = "public"

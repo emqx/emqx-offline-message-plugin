@@ -381,6 +381,7 @@ make_redis_resource_config(ConfigRaw0) ->
     RedisConfigRaw0 = maps:with(
         [
             <<"servers">>,
+            <<"sentinel">>,
             <<"redis_type">>,
             <<"pool_size">>,
             <<"username">>,
@@ -395,15 +396,18 @@ make_redis_resource_config(ConfigRaw0) ->
     RedisConfigRaw2 = drop_unused_fields(RedisConfigRaw1),
     RedisConfigRaw = maybe_drop_database_field(RedisConfigRaw2),
 
+    ?SLOG(info, #{msg => omp_redis_make_redis_resource_config, config => RedisConfigRaw}),
     RedisConfig = emqx_omp_utils:check_config(emqx_redis, RedisConfigRaw),
     ResourceOpts = emqx_omp_utils:make_resource_opts(ConfigRaw0),
 
     {RedisConfig, ResourceOpts}.
 
 fix_servers(#{<<"servers">> := Servers, <<"redis_type">> := <<"single">>} = RawConfig0) ->
-    RawConfig1 = maps:remove(<<"servers">>, RawConfig0),
+    RawConfig1 = maps:without([<<"servers">>, <<"sentinel">>], RawConfig0),
     RawConfig1#{<<"server">> => Servers};
-fix_servers(RawConfig) ->
+fix_servers(#{<<"redis_type">> := <<"cluster">>} = RawConfig) ->
+    maps:without([<<"sentinel">>], RawConfig);
+fix_servers(#{<<"redis_type">> := <<"sentinel">>} = RawConfig) ->
     RawConfig.
 
 drop_unused_fields(RawConfig) ->
@@ -417,7 +421,7 @@ drop_unused_fields(RawConfig) ->
             end
         end,
         RawConfig,
-        [<<"pool_size">>, <<"username">>, <<"password">>, <<"database">>]
+        [<<"pool_size">>, <<"username">>, <<"password">>, <<"database">>, <<"sentinel">>]
     ).
 
 maybe_drop_database_field(#{<<"redis_type">> := <<"cluster">>} = RawConfig) ->

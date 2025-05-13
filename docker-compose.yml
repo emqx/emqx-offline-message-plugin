@@ -126,6 +126,105 @@ services:
       timeout: 25s
       retries: 5
 
+  redis-cluster-node-1:
+    image: redis:7.0
+    command: redis-server --requirepass public --masterauth public --port 7001 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    ports:
+      - "7001:7001"
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7001", "ping"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  redis-cluster-node-2:
+    image: redis:7.0
+    command: redis-server --requirepass public --masterauth public --port 7002 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    ports:
+      - "7002:7002"
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7002", "ping"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  redis-cluster-node-3:
+    image: redis:7.0
+    command: redis-server --requirepass public --masterauth public --port 7003 --cluster-enabled yes --cluster-config-file nodes.conf --cluster-node-timeout 5000
+    ports:
+      - "7003:7003"
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "7003", "ping"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  redis-cluster-setup:
+    image: redis:7.0
+    depends_on:
+      redis-cluster-node-1:
+        condition: service_healthy
+      redis-cluster-node-2:
+        condition: service_healthy
+      redis-cluster-node-3:
+        condition: service_healthy
+    entrypoint: sh -c "redis-cli --cluster create redis-cluster-node-1:7001 redis-cluster-node-2:7002 redis-cluster-node-3:7003 --cluster-replicas 0 --cluster-yes -a public"
+    networks:
+      - emqx_network
+
+  redis-master:
+    image: redis:7.0
+    command: redis-server --requirepass public --masterauth public --port 8001
+    ports:
+      - "8001:8001"
+    networks:
+      - emqx_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "8001", "-a", "public", "ping"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  redis-slave:
+    image: redis:7.0
+    command: redis-server --requirepass public --masterauth public --port 8002 --replicaof redis-master 8001
+    ports:
+      - "8002:8002"
+    networks:
+      - emqx_network
+    depends_on:
+      redis-master:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "8002", "-a", "public", "ping"]
+      interval: 5s
+      timeout: 25s
+      retries: 5
+
+  redis-sentinel:
+    image: redis:7.0
+    command: >
+      bash -c "
+        echo 'sentinel monitor mymaster redis-master 8001 1' > sentinel.conf
+        echo 'sentinel auth-pass mymaster public' >> sentinel.conf
+        echo 'sentinel down-after-milliseconds mymaster 5000' >> sentinel.conf
+        echo 'sentinel parallel-syncs mymaster 1' >> sentinel.conf
+        echo 'sentinel failover-timeout mymaster 10000' >> sentinel.conf
+        echo 'sentinel resolve-hostnames yes' >> sentinel.conf
+        redis-sentinel sentinel.conf --port 26379
+      "
+    networks:
+      - emqx_network
+    depends_on:
+      redis-slave:
+        condition: service_healthy
+
 networks:
   emqx_network:
     driver: bridge

@@ -30,7 +30,7 @@ all() ->
 groups() ->
     emqx_omp_test_helpers:nested_groups([
         [generic],
-        [mysql_tcp, mysql_ssl, redis_tcp, redis_ssl],
+        [redis_sentinel, redis_cluster, redis_tcp, redis_ssl, mysql_tcp, mysql_ssl],
         [buffered, unbuffered],
         [t_different_subscribers, t_subscribition_persistence, t_health_check, t_message_order]
     ]) ++
@@ -84,6 +84,18 @@ init_per_group(redis_ssl, Config) ->
     PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
     PluginConfig2 = emqx_utils_maps:deep_put([redis, ssl, enable], PluginConfig1, true),
     PluginConfig3 = set_server(redis_ssl, PluginConfig2),
+    [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
+init_per_group(redis_cluster, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = emqx_utils_maps:deep_put([redis, redis_type], PluginConfig1, <<"cluster">>),
+    PluginConfig3 = set_server(redis_cluster, PluginConfig2),
+    [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
+init_per_group(redis_sentinel, Config) ->
+    PluginConfig0 = ?config(plugin_config, Config),
+    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = emqx_utils_maps:deep_put([redis, redis_type], PluginConfig1, <<"sentinel">>),
+    PluginConfig3 = set_server(redis_sentinel, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(mysql, Config) ->
     init_per_group(mysql_tcp, Config);
@@ -377,6 +389,7 @@ plugin_config() ->
             servers => <<"invalid-host:6379">>,
             topics => [<<"t/#">>],
             redis_type => <<"single">>,
+            sentinel => <<"">>,
             pool_size => 8,
             username => <<"">>,
             password => <<"public">>,
@@ -432,7 +445,20 @@ set_server(mysql_ssl, Config) ->
 set_server(redis_tcp, Config) ->
     emqx_utils_maps:deep_put([redis, servers], Config, <<"redis:6379">>);
 set_server(redis_ssl, Config) ->
-    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>).
+    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>);
+set_server(redis_cluster, Config) ->
+    emqx_utils_maps:deep_put(
+        [redis, servers],
+        Config,
+        <<"redis-cluster-node-1:7001,redis-cluster-node-2:7002,redis-cluster-node-3:7003">>
+    );
+set_server(redis_sentinel, Config0) ->
+    Config1 = emqx_utils_maps:deep_put(
+        [redis, servers],
+        Config0,
+        <<"redis-sentinel:26379">>
+    ),
+    emqx_utils_maps:deep_put([redis, sentinel], Config1, <<"mymaster">>).
 
 unique_id() ->
     binary:encode_hex(crypto:strong_rand_bytes(16)).
