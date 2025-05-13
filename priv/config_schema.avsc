@@ -92,6 +92,18 @@
             }
           },
           {
+            "name": "delete_subscription_sql",
+            "type": "string",
+            "default": "delete from mqtt_sub where clientid = ${clientid} and topic = ${topic}",
+            "$ui": {
+              "component": "input-textarea",
+              "required": true,
+              "label": "$mysql_delete_subscription_sql_label",
+              "description": "$mysql_delete_subscription_sql_desc",
+              "importance": "low"
+            }
+          },
+          {
             "name": "server",
             "type": "string",
             "default": "127.0.0.1:3306",
@@ -183,22 +195,6 @@
               "description": "$mysql_batch_time_desc",
               "importance": "low"
             }
-          },
-          {
-            "name": "query_mode",
-            "type": "string",
-            "default": "sync",
-            "$ui": {
-              "component": "select",
-              "required": true,
-              "label": "$mysql_query_mode_label",
-              "description": "$mysql_query_mode_desc",
-              "options": [
-                { "label": "Sync", "value": "sync" },
-                { "label": "Async", "value": "async" }
-              ]
-            },
-            "importance": "low"
           },
           {
             "name": "ssl",
@@ -333,6 +329,17 @@
             }
           },
           {
+            "name": "sentinel",
+            "type": "string",
+            "default": "",
+            "$ui": {
+              "component": "input",
+              "required": false,
+              "label": "$redis_sentinel_label",
+              "description": "$redis_sentinel_desc"
+            }
+          },
+          {
             "name": "database",
             "type": "int",
             "default": 0,
@@ -446,22 +453,6 @@
               "required": true,
               "label": "$redis_batch_time_label",
               "description": "$redis_batch_time_desc",
-              "importance": "low"
-            }
-          },
-          {
-            "name": "query_mode",
-            "type": "string",
-            "default": "sync",
-            "$ui": {
-              "component": "select",
-              "required": true,
-              "label": "$redis_query_mode_label",
-              "description": "$redis_query_mode_desc",
-              "options": [
-                { "label": "Sync", "value": "sync" },
-                { "label": "Async", "value": "async" }
-              ],
               "importance": "low"
             }
           },
