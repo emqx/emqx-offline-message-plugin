@@ -5,7 +5,7 @@
 This plugin can be used to store messages in a 3rd party database. It allows you to publish messages to a topic even when there are no subscribers online, and the messages will be stored until a subscriber comes online.
 
 Currently supports the following database backends:
-- PostgreSQL
+- MySQL
 - Redis
 
 ## Usage
