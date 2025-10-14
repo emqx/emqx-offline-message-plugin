@@ -423,7 +423,8 @@ make_mysql_resource_config(#{<<"insert_message_sql">> := InsertMessageStatement}
         }
     },
 
-    ResourceOpts = emqx_omp_utils:make_resource_opts(RawConfig0),
+    ResourceOpts0 = emqx_omp_utils:make_resource_opts(RawConfig0),
+    ResourceOpts = ResourceOpts0#{spawn_buffer_workers => true},
 
     {MysqlConfig, ResourceOpts}.
 
@@ -437,7 +438,7 @@ init_default_schema(#{<<"init_default_schema">> := true} = ConfigRaw) ->
     {ok, _} = emqx_resource:create_local(
         ?RESOURCE_ID_INIT,
         ?RESOURCE_GROUP,
-        emqx_bridge_mysql_connector,
+        emqx_mysql,
         MysqlConfig,
         ResourceOpts
     ),

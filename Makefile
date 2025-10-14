@@ -77,6 +77,10 @@ up:
 down:
 	docker compose down --volumes
 
+.PHONY: emqx-logs
+emqx-logs:
+	docker compose logs -f emqx
+
 # bump-version-patch/minor/major
 .PHONY: bump-version-%
 bump-version-%:

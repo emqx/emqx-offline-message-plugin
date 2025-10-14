@@ -78,16 +78,16 @@ api_delete(Path) ->
 
 make_request({get, Path}) ->
     ct:pal("GET ~s~n~n", [api_url(Path)]),
-    hackney:request(get, api_url(Path), headers());
+    hackney:request(get, api_url(Path), headers(), <<>>, hackney_options());
 make_request({post, Path, Body}) ->
     ct:pal("POST ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
-    hackney:request(post, api_url(Path), headers(), encode_json(Body));
+    hackney:request(post, api_url(Path), headers(), encode_json(Body), hackney_options());
 make_request({put, Path, Body}) ->
     ct:pal("PUT ~s~n~n~s~n~n", [api_url(Path), encode_json(Body)]),
-    hackney:request(put, api_url(Path), headers(), encode_json(Body));
+    hackney:request(put, api_url(Path), headers(), encode_json(Body), hackney_options());
 make_request({delete, Path}) ->
     ct:pal("DELETE ~s~n~n", [api_url(Path)]),
-    hackney:request(delete, api_url(Path), headers()).
+    hackney:request(delete, api_url(Path), headers(), <<>>, hackney_options()).
 
 handle_result({ok, Code, _Headers, ClientRef}) when Code >= 200 andalso Code < 300 ->
     {ok, Json} = hackney:body(ClientRef),
@@ -152,3 +152,6 @@ decode_json(Body) ->
 
 encode_json(Data) ->
     jiffy:encode(Data).
+
+hackney_options() ->
+    [{recv_timeout, 10000}, {connect_timeout, 5000}, {checkout_timeout, 5000}].

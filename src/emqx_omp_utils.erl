@@ -45,7 +45,8 @@ make_resource_opts(RawConfig) ->
         %% nothing to remove yet.
         %% After some time, the message will be persisted in the database, and the client
         %% will receive it once more on reconnect.
-        query_mode => sync
+        query_mode => sync,
+        owner_id => <<"omp">>
     }.
 
 check_config(Schema, ConfigRaw) ->
