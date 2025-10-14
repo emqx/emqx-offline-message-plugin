@@ -156,7 +156,7 @@ fetch_and_deliver_messages(Topic, Context) ->
             })
     end.
 
-fetch_message_ids(Topic, Context) ->
+fetch_message_ids(Topic, #{message_ttl := TTL} = Context) ->
     MsgTab = msg_table(Context, Topic),
     case sync_cmd([<<"ZRANGE">>, MsgTab, 0, -1, <<"WITHSCORES">>]) of
         {ok, RawMsgIds} ->
@@ -164,15 +164,14 @@ fetch_message_ids(Topic, Context) ->
                 msg => "omp_redis_fetch_message_ids",
                 raw_msg_ids => RawMsgIds
             }),
-            MsgIdsWithExpireTS = parse_msg_ids(RawMsgIds),
+            MsgIdsWithCreatedTS = parse_msg_ids(RawMsgIds),
             Now = erlang:system_time(millisecond),
-            %% Don't know what MsgId =:= <<"1">> is for.
-            %% The logic is kept from v4
+            Deadline = Now - erlang:convert_time_unit(TTL, second, millisecond),
             %% NOTE
             %% The MsgIds here are base62 encoded
             MsgIds = [
                 MsgId
-             || {MsgId, ExpireTS} <- MsgIdsWithExpireTS, ExpireTS > Now orelse MsgId =:= <<"1">>
+             || {MsgId, CreatedTS} <- MsgIdsWithCreatedTS, CreatedTS > Deadline
             ],
             ?SLOG(debug, #{
                 msg => "omp_redis_fetch_message_ids_parsed",
@@ -184,9 +183,17 @@ fetch_message_ids(Topic, Context) ->
     end.
 
 parse_msg_ids([MsgId, TS | KVs]) ->
-    [{MsgId, binary_to_integer(TS)} | parse_msg_ids(KVs)];
+    [{MsgId, parse_zscore(TS)} | parse_msg_ids(KVs)];
 parse_msg_ids([]) ->
     [].
+
+parse_zscore(ZScore) when is_binary(ZScore) ->
+    try
+        binary_to_float(ZScore)
+    catch
+        error:badarg ->
+            binary_to_integer(ZScore)
+    end.
 
 fetch_messages(MsgIds, Context) ->
     fetch_messages(MsgIds, [], [], Context).
@@ -264,14 +271,21 @@ on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters}
             true ->
                 Topic = emqx_message:topic(Message),
                 MsgId = emqx_message:id(Message),
-                Now = erlang:system_time(millisecond),
-                ExpireTime = Now + erlang:convert_time_unit(TTL, second, millisecond),
+                Now =
+                    erlang:system_time(native) /
+                        erlang:convert_time_unit(1, millisecond, native),
+                Deadline = Now - erlang:convert_time_unit(TTL, second, millisecond),
                 MsgIDb62 = to_b62(MsgId),
                 Cmds = [
                     [<<"HMSET">>, msg_table(Context, MsgIDb62)] ++ message_to_hash(Message),
-                    [<<"ZADD">>, msg_table(Context, Topic), ExpireTime, MsgIDb62],
+                    [<<"ZADD">>, msg_table(Context, Topic), float_to_binary(Now), MsgIDb62],
                     [<<"EXPIRE">>, msg_table(Context, MsgIDb62), TTL],
-                    [<<"ZREMRANGEBYSCORE">>, msg_table(Context, Topic), 2, Now]
+                    [
+                        <<"ZREMRANGEBYSCORE">>,
+                        msg_table(Context, Topic),
+                        <<"-inf">>,
+                        float_to_binary(Deadline)
+                    ]
                 ],
                 case sync_cmds(Cmds) of
                     {ok, _} ->

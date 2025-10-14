@@ -264,7 +264,11 @@ t_message_order(_Config) ->
     ok = emqtt:stop(ClientSub),
 
     %% Check messages order
-    ?assertEqual(lists:seq(1, 200), Messages).
+    Expected = lists:seq(1, 200),
+    ?assertEqual([], Expected -- Messages, "Not all messages were received"),
+    ?assertEqual([], Messages -- Expected, "Duplicate messages were received"),
+    InvalidOrder = lists:filter(fun({A, B}) -> A =/= B end, lists:zip(Expected, Messages)),
+    ?assertEqual([], InvalidOrder, "Messages were received in the wrong order").
 
 t_mysql_table_cleanup(Config) ->
     %% setup and cleanup
