@@ -36,20 +36,21 @@ Configure the plugin in the Dashboard: http://localhost:18083/#/plugins/detail/e
 
 Verify:
 
-```bash
-mosquitto_pub -d -q 1 -t 't/2' -m 'hello-from-offline1'
-mosquitto_pub -d -q 1 -t 't/2' -m 'hello-from-offline2'
-mosquitto_pub -d -q 1 -t 't/2' -m 'hello-from-offline3'
+Using [MQTTX CLI](https://mqttx.app/cli)
 
-mosquitto_sub -d -q 1 -t 't/2' -i $(pwgen 20 -1)
+```bash
+mqttx pub -q 1 -t 't/2' -m 'hello-from-offline1'
+mqttx pub -q 1 -t 't/2' -m 'hello-from-offline2'
+mqttx pub -q 1 -t 't/2' -m 'hello-from-offline3'
+
+mqttx sub -q 1 -t 't/2' -i $(pwgen 20 -1)
 ```
 
 No messages should be received:
 
 ```bash
-mosquitto_sub -d -q 1 -t 't/2' -i $(pwgen 20 -1)
+mqttx sub -q 1 -t 't/2' -i $(pwgen 20 -1)
 ```
-
 
 ## Release
 
