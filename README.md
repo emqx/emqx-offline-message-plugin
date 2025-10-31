@@ -72,3 +72,76 @@ make fmt
 ```
 
 See [EMQX documentation](https://docs.emqx.com/en/enterprise/v5.0/extensions/plugins.html) for details on how to deploy custom plugins.
+
+## Database Schema
+
+This plugin requires a pre-defined database schema.
+
+### MySQL
+
+**Messages table**
+
+```
+CREATE TABLE IF NOT EXISTS `mqtt_msg` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `msgid` varchar(64) DEFAULT NULL,
+  `topic` varchar(180) NOT NULL,
+  `sender` varchar(64) DEFAULT NULL,
+  `qos` tinyint(1) NOT NULL DEFAULT '0',
+  `retain` tinyint(1) DEFAULT NULL,
+  `payload` blob,
+  `arrived` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  INDEX topic_index(`topic`)
+)
+ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;
+```
+
+**Subscriptions table**
+
+```
+CREATE TABLE IF NOT EXISTS `mqtt_sub` (
+  `clientid` varchar(64) NOT NULL,
+  `topic` varchar(180) NOT NULL,
+  `qos` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`clientid`, `topic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8MB4;
+```
+
+### Redis
+
+Redis uses the following data structures (no predefined schema needed, structures are created automatically):
+
+**Subscriptions** - Redis Hashes
+
+- Key pattern: `mqtt:sub:{clientid}`
+- Hash fields: `{topic}` -> `{qos}` (integer)
+- Operations: `HSET`, `HDEL`, `HGETALL`
+
+**Messages** - Redis Hashes
+
+- Key pattern: `mqtt:msg:{msgid}` (msgid is base62 encoded)
+- Hash fields:
+  - `id` -> base62 encoded message ID
+  - `from` -> sender/clientid
+  - `qos` -> QoS level (0, 1, or 2)
+  - `topic` -> topic name
+  - `payload` -> message payload (binary)
+  - `ts` -> timestamp (integer)
+  - `retain` -> "true" or "false" (string)
+- Operations: `HMSET`, `HGETALL`, `DEL`, `EXPIRE`
+
+**Message Index by Topic** - Redis Sorted Sets
+
+- Key pattern: `mqtt:msg:{topic}`
+- Members: base62 encoded message IDs
+- Scores: timestamps (used for TTL/expiration cleanup)
+- Operations: `ZADD`, `ZRANGE`, `ZREMRANGEBYSCORE`, `ZREM`
+
+**Required Redis Operations for ACL Control**
+
+If using Redis ACL, the user needs permissions for the following operations:
+
+- Hash operations: `HSET`, `HDEL`, `HGETALL`, `HMSET`, `DEL`, `EXPIRE`
+- Sorted set operations: `ZADD`, `ZRANGE`, `ZREMRANGEBYSCORE`, `ZREM`
+- Key pattern operations: Access to keys matching `mqtt:sub:*` and `mqtt:msg:*`
