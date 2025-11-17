@@ -14,7 +14,7 @@ Download the plugin:
 
 <!-- Do not update plugin version manually, use make bump-version-patch/minor/major instead -->
 ```bash
-wget https://github.com/emqx/emqx-offline-message-plugin/releases/download/v1.0.3/emqx_offline_message_plugin-1.0.3.tar.gz
+wget https://github.com/emqx/emqx-offline-message-plugin/releases/download/v2.0.0/emqx_offline_message_plugin-2.0.0.tar.gz
 ```
 
 Install the plugin:
@@ -23,7 +23,7 @@ Install the plugin:
 ```bash
 curl -u key:secret -X POST http://localhost:18083/api/v5/plugins/install \
 -H "Content-Type: multipart/form-data" \
--F "plugin=@emqx_offline_message_plugin-1.0.3.tar.gz"
+-F "plugin=@emqx_offline_message_plugin-2.0.0.tar.gz"
 ```
 
 Check the plugin is installed:
@@ -32,7 +32,7 @@ Check the plugin is installed:
 curl -u key:secret http://localhost:18083/api/v5/plugins | jq
 ```
 
-Configure the plugin in the Dashboard: http://localhost:18083/#/plugins/detail/emqx_offline_message_plugin-1.0.3
+Configure the plugin in the Dashboard: http://localhost:18083/#/plugins/detail/emqx_offline_message_plugin-2.0.0
 
 Verify:
 
