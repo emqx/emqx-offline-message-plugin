@@ -13,21 +13,18 @@ jobs:
   test:
     name: Run tests
     runs-on: ubuntu-24.04
+    container: ghcr.io/emqx/emqx-builder/6.0-12:1.18.3-27.3.4.2-6-ubuntu24.04
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Setup Erlang
-      uses: erlef/setup-beam@v1
-      with:
-        otp-version: "27"
-        rebar3-version: "3"
+    - run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
     - name: Check format
       run: make fmt-check
 
-    - name: Start Dependencies
-      run: make up
+    # - name: Start Dependencies
+    #   run: make up
 
     - name: Run Tests
       run: make ct

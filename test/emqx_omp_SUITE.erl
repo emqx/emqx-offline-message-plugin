@@ -40,6 +40,11 @@ groups() ->
         ].
 
 init_per_suite(Config) ->
+    ct:pal("~p>>>>>>>>>\n  ~p", [
+        {node(), ?MODULE, ?LINE, self()}, #{code_path => lists:sort(code:get_path())}
+    ]),
+    Apps = emqx_cth_suite:start([emqx], #{work_dir => emqx_cth_suite:work_dir(Config)}),
+
     ok = emqx_omp_test_helpers:start(),
 
     %% clean up
@@ -51,11 +56,19 @@ init_per_suite(Config) ->
     ok = emqx_omp_test_api_helpers:upload_plugin(Filename),
     ok = emqx_omp_test_api_helpers:start_plugin(PluginId),
     PluginConfig = plugin_config(),
-    [{plugin_id, PluginId}, {plugin_filename, Filename}, {plugin_config, PluginConfig} | Config].
+    [
+        {plugin_id, PluginId},
+        {plugin_filename, Filename},
+        {plugin_config, PluginConfig},
+        {apps, Apps}
+        | Config
+    ].
 
-end_per_suite(_Config) ->
+end_per_suite(Config) ->
     ok = emqx_omp_test_api_helpers:delete_all_plugins(),
     ok = emqx_omp_test_helpers:stop(),
+    {apps, Apps} = lists:keyfind(apps, 1, Config),
+    ok = emqx_cth_suite:stop(Apps),
     ok.
 
 %%
