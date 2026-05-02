@@ -36,12 +36,7 @@ stop() ->
     ok.
 
 allow_plugin_install() ->
-    Command =
-        "docker compose exec emqx /opt/emqx/bin/emqx ctl plugins allow " ++
-            binary_to_list(?PLUGIN_NAME_VSN),
-    ct:print("Command: ~s~n", [Command]),
-    os:cmd(Command),
-    timer:sleep(1000),
+    ok = emqx_plugins:allow_installation(?PLUGIN_NAME_VSN),
     ok.
 
 api_get(Path) ->

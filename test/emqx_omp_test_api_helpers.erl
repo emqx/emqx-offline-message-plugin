@@ -41,6 +41,11 @@
     delete_all_actions/0
 ]).
 
+%% Mgmt API
+-export([
+    bootstrap_api_keys/0
+]).
+
 %%--------------------------------------------------------------------
 %% Connector API
 %%--------------------------------------------------------------------
@@ -221,6 +226,15 @@ delete_action(ActionId) ->
 delete_all_actions() ->
     Actions = list_actions(),
     lists:foreach(fun(Action) -> ok = delete_action(action_id(Action)) end, Actions).
+
+%%--------------------------------------------------------------------
+%% Mgmt API
+%%--------------------------------------------------------------------
+
+bootstrap_api_keys() ->
+    BootstrapFile = filename:join([asset_path(), "api-keys.txt"]),
+    {ok, _} = emqx:update_config([<<"api_key">>], #{<<"bootstrap_file">> => BootstrapFile}),
+    ok.
 
 %%--------------------------------------------------------------------
 %% Internal functions

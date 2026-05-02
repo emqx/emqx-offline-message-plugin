@@ -4,7 +4,7 @@
 
 -module(emqx_omp_utils).
 
--include_lib("emqx_plugin_helper/include/logger.hrl").
+-include_lib("emqx/include/logger.hrl").
 
 -export([
     fix_ssl_config/1,
