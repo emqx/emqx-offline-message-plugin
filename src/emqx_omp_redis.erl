@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2025-2026 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
 -module(emqx_omp_redis).
@@ -261,13 +261,14 @@ delete_subscription(ClientId, Topic, Context) ->
 on_message_publish(Message = #message{topic = <<"$SYS/", _/binary>>}, _Context) ->
     {ok, Message};
 on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters} = Context) ->
-    _ =
+    Message1 =
         case emqx_omp_utils:need_persist_message(Message, TopicFilters) of
             false ->
                 ?SLOG(debug, #{
                     msg => omp_redis_message_publish_qos0,
                     message => Message
-                });
+                }),
+                Message;
             true ->
                 Topic = emqx_message:topic(Message),
                 MsgId = emqx_message:id(Message),
@@ -289,15 +290,16 @@ on_message_publish(Message, #{message_ttl := TTL, topic_filters := TopicFilters}
                 ],
                 case sync_cmds(Cmds) of
                     {ok, _} ->
-                        ok;
+                        emqx_message:set_header(message_persisted, true, Message);
                     {error, Reason} ->
                         ?SLOG(error, #{
                             msg => "omp_redis_message_publish_error",
                             reason => Reason
-                        })
+                        }),
+                        Message
                 end
         end,
-    {ok, Message}.
+    {ok, Message1}.
 
 on_message_acked(
     _ClientInfo,

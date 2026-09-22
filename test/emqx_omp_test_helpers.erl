@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2025-2026 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
 -module(emqx_omp_test_helpers).
@@ -27,6 +27,12 @@ nested_groups([ParentNames, ChildNames | Names]) ->
         {ParentName, [], ChildGroups}
      || ParentName <- ParentNames
     ] ++ nested_groups([ChildNames | Names]).
+
+deep_put([], _Map, Data) ->
+    Data;
+deep_put([Key | KeyPath], Map, Data) ->
+    SubMap = maps:get(Key, Map, #{}),
+    Map#{Key => deep_put(KeyPath, SubMap, Data)}.
 
 start() ->
     {ok, _} = application:ensure_all_started(hackney),

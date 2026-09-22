@@ -1,5 +1,5 @@
 %%--------------------------------------------------------------------
-%% Copyright (c) 2025 EMQ Technologies Co., Ltd. All Rights Reserved.
+%% Copyright (c) 2025-2026 EMQ Technologies Co., Ltd. All Rights Reserved.
 %%--------------------------------------------------------------------
 
 -module(emqx_omp_SUITE).
@@ -15,6 +15,7 @@
 -define(set_config(KEY, VALUE, CONFIG), lists:keyreplace(KEY, 1, CONFIG, {KEY, VALUE})).
 
 -import(emqx_omp_test_helpers, [api_get/1, api_get_raw/1, api_post/2, api_delete/1]).
+-import(emqx_omp_test_helpers, [deep_put/3]).
 
 %%--------------------------------------------------------------------
 %% CT Setup
@@ -32,7 +33,14 @@ groups() ->
         [generic],
         [redis_sentinel, redis_cluster, redis_tcp, redis_ssl, mysql_tcp, mysql_ssl],
         [buffered, unbuffered],
-        [t_different_subscribers, t_subscribition_persistence, t_health_check, t_message_order]
+        [
+            t_different_subscribers,
+            t_subscribition_persistence,
+            t_health_check,
+            t_message_order
+            %% Enable when the default EMQX image supports message_persisted.
+            %% t_publish_http
+        ]
     ]) ++
         [
             {mysql, [], [t_mysql_table_cleanup]},
@@ -63,38 +71,38 @@ end_per_suite(_Config) ->
 %%
 init_per_group(mysql_tcp, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig1, false),
+    PluginConfig1 = deep_put([mysql, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([mysql, ssl, enable], PluginConfig1, false),
     PluginConfig3 = set_server(mysql_tcp, PluginConfig2),
     [{backend, mysql} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(mysql_ssl, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([mysql, ssl, enable], PluginConfig1, true),
+    PluginConfig1 = deep_put([mysql, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([mysql, ssl, enable], PluginConfig1, true),
     PluginConfig3 = set_server(mysql_ssl, PluginConfig2),
     [{backend, mysql} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(redis_tcp, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([redis, ssl, enable], PluginConfig1, false),
+    PluginConfig1 = deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([redis, ssl, enable], PluginConfig1, false),
     PluginConfig3 = set_server(redis_tcp, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(redis_ssl, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([redis, ssl, enable], PluginConfig1, true),
+    PluginConfig1 = deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([redis, ssl, enable], PluginConfig1, true),
     PluginConfig3 = set_server(redis_ssl, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(redis_cluster, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([redis, redis_type], PluginConfig1, <<"cluster">>),
+    PluginConfig1 = deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([redis, redis_type], PluginConfig1, <<"cluster">>),
     PluginConfig3 = set_server(redis_cluster, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(redis_sentinel, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
-    PluginConfig1 = emqx_utils_maps:deep_put([redis, enable], PluginConfig0, true),
-    PluginConfig2 = emqx_utils_maps:deep_put([redis, redis_type], PluginConfig1, <<"sentinel">>),
+    PluginConfig1 = deep_put([redis, enable], PluginConfig0, true),
+    PluginConfig2 = deep_put([redis, redis_type], PluginConfig1, <<"sentinel">>),
     PluginConfig3 = set_server(redis_sentinel, PluginConfig2),
     [{backend, redis} | ?set_config(plugin_config, PluginConfig3, Config)];
 init_per_group(mysql, Config) ->
@@ -107,12 +115,12 @@ init_per_group(redis, Config) ->
 init_per_group(buffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
-    PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 10),
+    PluginConfig = deep_put([Backend, batch_size], PluginConfig0, 10),
     ?set_config(plugin_config, PluginConfig, Config);
 init_per_group(unbuffered, Config) ->
     PluginConfig0 = ?config(plugin_config, Config),
     Backend = ?config(backend, Config),
-    PluginConfig = emqx_utils_maps:deep_put([Backend, batch_size], PluginConfig0, 1),
+    PluginConfig = deep_put([Backend, batch_size], PluginConfig0, 1),
     ?set_config(plugin_config, PluginConfig, Config);
 %%
 %% Auxiliary groups
@@ -137,6 +145,31 @@ end_per_testcase(_Case, _Config) ->
 %%--------------------------------------------------------------------
 %% Test cases
 %%--------------------------------------------------------------------
+
+t_publish_http(_Config) ->
+    Topic = unique_topic(),
+    Payload = unique_payload(),
+    Body = #{topic => Topic, payload => Payload, qos => 1},
+    {ok, 200, _, Ref} = emqx_omp_test_helpers:make_request({post, publish, Body}),
+    {ok, Json} = hackney:body(Ref),
+    #{<<"id">> := Id} = emqx_omp_test_helpers:decode_json(Json),
+    ?assertEqual(32, byte_size(Id)),
+    Client = emqtt_connect(),
+    _ = emqtt:subscribe(Client, Topic, 1),
+    receive
+        {publish, #{payload := Payload}} -> ok
+    after 1000 ->
+        ct:fail(message_not_received)
+    end,
+    ok = emqtt:stop(Client),
+    {ok, 202, _, SkippedRef} = emqx_omp_test_helpers:make_request(
+        {post, publish, Body#{topic => unique_topic(), qos => 0}}
+    ),
+    {ok, SkippedJson} = hackney:body(SkippedRef),
+    ?assertMatch(
+        #{<<"reason_code">> := 16},
+        emqx_omp_test_helpers:decode_json(SkippedJson)
+    ).
 
 t_different_subscribers(_Config) ->
     Topic = unique_topic(),
@@ -181,6 +214,7 @@ t_subscribition_persistence(_Config) ->
     ClientSub0 = emqtt_connect(SubscriberOpts),
     _ = emqtt:subscribe(ClientSub0, Topic, 1),
     ok = emqtt:stop(ClientSub0),
+    ok = wait_client_unregistered(ClientId, 100),
 
     %% Publish message to topic
     Payload0 = unique_payload(),
@@ -199,6 +233,7 @@ t_subscribition_persistence(_Config) ->
         ct:fail("Message not received")
     end,
     ok = emqtt:stop(ClientSub1),
+    ok = wait_client_unregistered(ClientId, 100),
 
     %% Reconnect subscriber again
     %% It should NOT receive the old message
@@ -233,8 +268,8 @@ t_health_check(Config) ->
         emqx_omp_test_api_helpers:get_plugin(PluginId)
     ),
     Config0 = ?config(plugin_config, Config),
-    Config1 = emqx_utils_maps:deep_put([mysql, server], Config0, <<"bad-host:3306">>),
-    Config2 = emqx_utils_maps:deep_put([redis, servers], Config1, <<"bad-host:6379">>),
+    Config1 = deep_put([mysql, server], Config0, <<"bad-host:3306">>),
+    Config2 = deep_put([redis, servers], Config1, <<"bad-host:6379">>),
     ok = emqx_omp_test_api_helpers:configure_plugin(PluginId, Config2),
     ?assertMatch(
         #{<<"running_status">> := [#{<<"health_status">> := #{<<"status">> := <<"error">>}}]},
@@ -369,6 +404,19 @@ t_redis_table_cleanup(Config) ->
 %% Internal functions
 %%--------------------------------------------------------------------
 
+wait_client_unregistered(ClientId, Attempts) ->
+    Query = uri_string:compose_query([{"clientid", ClientId}]),
+    {ok, #{<<"data">> := Clients}} = api_get(["clients?", Query]),
+    case Clients of
+        [] ->
+            ok;
+        _ when Attempts > 0 ->
+            ct:sleep(20),
+            wait_client_unregistered(ClientId, Attempts - 1);
+        _ ->
+            ct:fail({client_not_unregistered, ClientId, Clients})
+    end.
+
 emqtt_connect() ->
     emqtt_connect([]).
 
@@ -438,31 +486,31 @@ plugin_config() ->
 
 empty_plugin_config() ->
     PluginConfig0 = plugin_config(),
-    PluginConfig1 = emqx_utils_maps:deep_put([mysql, enable], PluginConfig0, false),
-    PluginConfig2 = emqx_utils_maps:deep_put([redis, enable], PluginConfig1, false),
+    PluginConfig1 = deep_put([mysql, enable], PluginConfig0, false),
+    PluginConfig2 = deep_put([redis, enable], PluginConfig1, false),
     PluginConfig2.
 
 set_server(mysql_tcp, Config) ->
-    emqx_utils_maps:deep_put([mysql, server], Config, <<"mysql:3306">>);
+    deep_put([mysql, server], Config, <<"mysql:3306">>);
 set_server(mysql_ssl, Config) ->
-    emqx_utils_maps:deep_put([mysql, server], Config, <<"mysql-ssl:3306">>);
+    deep_put([mysql, server], Config, <<"mysql-ssl:3306">>);
 set_server(redis_tcp, Config) ->
-    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis:6379">>);
+    deep_put([redis, servers], Config, <<"redis:6379">>);
 set_server(redis_ssl, Config) ->
-    emqx_utils_maps:deep_put([redis, servers], Config, <<"redis-ssl:6380">>);
+    deep_put([redis, servers], Config, <<"redis-ssl:6380">>);
 set_server(redis_cluster, Config) ->
-    emqx_utils_maps:deep_put(
+    deep_put(
         [redis, servers],
         Config,
         <<"redis-cluster-node-1:7001,redis-cluster-node-2:7002,redis-cluster-node-3:7003">>
     );
 set_server(redis_sentinel, Config0) ->
-    Config1 = emqx_utils_maps:deep_put(
+    Config1 = deep_put(
         [redis, servers],
         Config0,
         <<"redis-sentinel:26379">>
     ),
-    emqx_utils_maps:deep_put([redis, sentinel], Config1, <<"mymaster">>).
+    deep_put([redis, sentinel], Config1, <<"mymaster">>).
 
 unique_id() ->
     binary:encode_hex(crypto:strong_rand_bytes(16)).
