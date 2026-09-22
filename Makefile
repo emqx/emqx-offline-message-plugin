@@ -71,6 +71,7 @@ fmt-check: $(REBAR)
 
 .PHONY: up
 up:
+	cd test/assets && bash ./gen-certs.sh
 	docker compose up --detach --build --force-recreate
 
 .PHONY: down
@@ -85,4 +86,3 @@ emqx-logs:
 .PHONY: bump-version-%
 bump-version-%:
 	./scripts/bumpversion.sh $*
-
