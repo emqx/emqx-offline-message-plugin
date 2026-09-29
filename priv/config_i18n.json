@@ -127,14 +127,6 @@
         "en": "Maximum time in milliseconds to wait before writing a batch",
         "zh": "写入批量数据前等待的最大时间（毫秒）"
     },
-    "$mysql_query_mode_label": {
-        "en": "MySQL Query Mode",
-        "zh": "MySQL 查询模式"
-    },
-    "$mysql_query_mode_desc": {
-        "en": "Query mode (Sync/Async)",
-        "zh": "查询模式 (同步/异步)"
-    },
     "$mysql_ssl_enable_label": {
         "en": "MySQL SSL Enable",
         "zh": "MySQL SSL 启用"
@@ -296,14 +288,6 @@
     "$redis_batch_time_desc": {
         "en": "Maximum time in milliseconds to wait before writing a batch",
         "zh": "写入批量数据前等待的最大时间（毫秒）"
-    },
-    "$redis_query_mode_label": {
-        "en": "Redis Query Mode",
-        "zh": "Redis 查询模式"
-    },
-    "$redis_query_mode_desc": {
-        "en": "Query mode (Sync/Async)",
-        "zh": "查询模式 (同步/异步)"
     },
     "$redis_ssl_enable_label": {
         "en": "Redis SSL Enable",
