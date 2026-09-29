@@ -216,7 +216,7 @@
                 {
                   "name": "server_name_indication",
                   "type": "string",
-                  "default": "mysql-server",
+                  "default": "disable",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -227,7 +227,7 @@
                 {
                   "name": "cacertfile",
                   "type": "string",
-                  "default": "/certs/ca.crt",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -238,7 +238,7 @@
                 {
                   "name": "certfile",
                   "type": "string",
-                  "default": "/certs/mysql-client.crt",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -249,7 +249,7 @@
                 {
                   "name": "keyfile",
                   "type": "string",
-                  "default": "/certs/mysql-client.key",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -260,7 +260,7 @@
                 {
                   "name": "verify",
                   "type": "string",
-                  "default": "verify_peer",
+                  "default": "verify_none",
                   "$ui": {
                     "component": "select",
                     "required": false,
@@ -476,7 +476,7 @@
                 {
                   "name": "server_name_indication",
                   "type": "string",
-                  "default": "redis-server",
+                  "default": "disable",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -487,7 +487,7 @@
                 {
                   "name": "cacertfile",
                   "type": "string",
-                  "default": "/certs/ca.crt",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -498,7 +498,7 @@
                 {
                   "name": "certfile",
                   "type": "string",
-                  "default": "/certs/redis-client.crt",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -509,7 +509,7 @@
                 {
                   "name": "keyfile",
                   "type": "string",
-                  "default": "/certs/redis-client.key",
+                  "default": "",
                   "$ui": {
                     "component": "input",
                     "required": false,
@@ -520,7 +520,7 @@
                 {
                   "name": "verify",
                   "type": "string",
-                  "default": "verify_peer",
+                  "default": "verify_none",
                   "$ui": {
                     "component": "select",
                     "required": false,
