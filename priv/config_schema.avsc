@@ -58,7 +58,7 @@
           {
             "name": "select_message_sql",
             "type": "string",
-            "default": "select * from mqtt_msg where msgid = ${id}",
+            "default": "select * from mqtt_msg where topic = ${topic}",
             "$ui": {
               "component": "input-textarea",
               "required": true,
